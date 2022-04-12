@@ -5,934 +5,431 @@
 ##                                                               ##
 ###################################################################
 ##
-##  Invocation Options:
-##
-##   1. make all              Build all the Tinker executables
-##   2. make install          Move the executables to BINDIR
-##   3. make create_links     Create soft links in LINKDIR
-##   4. make remove_links     Remove soft links from LINKDIR
-##   5. make listing          Concatenate source to tinker.txt
-##   6. make clean            Delete objects and executables
-##
-##  Original version of this file is due to Peter Happersberger
-##  and Jochen Buehler of the University of Konstanz, January 1998.
-##  Modifications by Reece Hart & Jay Ponder, Washington University
-##
-##  Building Tinker from source requires libraries from the FFTW
-##  Fast Fourier Transform package and (optionally) APBS Poisson-
-##  Boltzmann solver. These libraries are assumed to already be
-##  present, and are not built by this Makefile
-##
-###################################################################
+
+# source directory
+src := $(PWD)
+# release / debug / profile / etc.
+opt := debug
+# gfortran / gfortran8 / gfortran-8 / ifort / ifort14 / ifort-14 / etc.
+F77 := gfortran
+# FFTW directory
+fftw := /home/kchung25/tinker/fftw
 
 ###################################################################
-##  Main Environment Variables; Change as Needed for Local Site  ##
+##  Master Directory Locations; Change as Needed for Local Site  ##
 ###################################################################
 
-##  TINKERDIR       Tinker Top-Level Directory
+##  TINKERDIR       Tinker Distribution Directory
 ##  TINKER_LIBDIR   Libraries needed to build Tinker
 ##  BINDIR          Directory with Tinker Executables
 ##  LINKDIR         Linked Copies of Tinker Executables
 ##  FFTWDIR         FFTW Top-Level Directory
-##  FFTW_LIBDIR     Directory with FFTW Libraries
+##  FFTW_LIB_DIR    Directory with FFTW Libraries
 ##  FFTW_LIBS       FFTW Libraries needed to build Tinker
 ##  APBSDIR         APBS Top-Level Directory
-##  APBS_INCDIR     Directory with APBS Include Files
-##  APBS_LIBDIR     Directory with APBS Libraries
+##  APBS_INC_DIR    Directory with APBS Include Files
+##  APBS_LIB_DIR    Directory with APBS Libraries
 ##  APBS_LIBS       APBS Libraries needed to build Tinker
 
-TINKERDIR = $(HOME)/tinker_expol/tinker_expol/source
-TINKER_LIBDIR = $(TINKERDIR)/lib
-BINDIR = $(TINKERDIR)/bin
-LINKDIR = /usr/local/bin
+TINKERDIR := /home/kchung25/tinker_expol/tinker_main/source
+TINKER_LIBDIR := $(TINKERDIR)/lib
+BINDIR := $(TINKERDIR)/bin
+LINKDIR := /usr/local/bin
 
-FFTWDIR = /home/kchung25/tinker/fftw
-FFTW_LIBDIR = -L$(FFTWDIR)/lib
-FFTW_LIBS = -lfftw3_threads -lfftw3
+ifeq ($(fftw), default__)
+  FFTWDIR := $(TINKERDIR)/fftw
+else
+  FFTWDIR := $(fftw)
+endif
+FFTW_LIBDIR := -L$(FFTWDIR)/lib
+FFTW_LIBS := -lfftw3_threads -lfftw3
 
-APBSDIR = $(TINKERDIR)/apbs
-APBS_INCDIR = -I$(APBSDIR)/include
-APBS_LIBDIR = -L$(APBSDIR)/lib
-APBS_LIBS = -lapbsmainroutines -lapbs -lmaloc -lapbsblas
+APBSDIR := $(TINKERDIR)/apbs
+APBS_INCDIR := -I$(APBSDIR)/include
+APBS_LIBDIR := -L$(APBSDIR)/lib
+APBS_LIBS := -lapbsmainroutines -lapbs -lmaloc -lapbsblas
 
-####################################################################
-##  Known Machine Types; Uncomment One of the Following Sections  ##
-##  May Need Editing to Match Your Desired OS & Compiler Version  ##
-####################################################################
+######################
+## Operating System ##
+######################
+# Darwin (macOS) / Linux / CYGWIN_NT
+os__ := $(shell uname -s)
 
-##  Build:     Tinker
-##  OS Type:   Generic Linux
-##  CPU Type:  Intel x86 Compatible
-##  Compiler:  GNU gfortran 9.3
-##  Parallel:  OpenMP
+ifeq ($(os__), Darwin)
+else ifeq ($(os__), Linux)
+else ifeq ($(shell echo $(os__) | cut -c 1-9), CYGWIN_NT)
+else
+$(error Unknown OS -- $(os__); Please help with us)
+endif
 
-F77 = gfortran
-F77FLAGS = -c
-OPTFLAGS = -Ofast -march=native -fopenmp
-#OPTFLAGS = -Ofast -msse3 -fopenmp
-OPTFLAGS = -Og -fbacktrace -fcheck=bounds -Wunused -Wmaybe-uninitialized
-LIBDIR = -L. -L$(TINKER_LIBDIR)/linux -Wl,--no-as-needed -ldl
-LIBS = 
-LIBFLAGS = -crusv
-RANLIB = ranlib
-LINKFLAGS = $(OPTFLAGS) -static-libgcc
-RENAME = rename_bin
+##################
+## F77 Compiler ##
+##################
+use_gfortran__ := false
+use_ifort := false
+found__ := false
 
-##  Build:     Tinker
-##  OS Type:   Apple macOS
-##  CPU Type:  Intel x86 Compatible
-##  Compiler:  GNU gfortran 8.1
-##  Parallel:  OpenMP
+f77__ := $(shell echo $(F77) | cut -c 1-8)
+ifeq ($(f77__), gfortran)
+  use_gfortran__ := true
+  found__ := true
+endif
+f77__ := $(shell echo $(F77) | cut -c 1-5)
+ifeq ($(f77__), ifort)
+  use_ifort__ := true
+  found__ := true
+endif
+ifneq ($(found__), true)
+$(error Unknown fortran compiler -- $(F77); Please help with us)
+endif
 
-#F77 = gfortran
-#F77FLAGS = -c
-#OPTFLAGS = -Ofast -march=native -fopenmp
-#OPTFLAGS = -Ofast -mssse3 -fopenmp
-#OPTFLAGS = -Og -fbacktrace -fcheck=bounds -Wunused -Wmaybe-uninitialized
-#LIBDIR = -L. -L$(TINKER_LIBDIR)/macos
-#LIBS = 
-#LIBFLAGS = -crusv
-#RANLIB = ranlib -c
-#LINKFLAGS = $(OPTFLAGS) -static-libgcc
-#RENAME = rename_bin
+###################
+## Compile Flags ##
+###################
 
-##  Build:     Tinker
-##  OS Type:   Microsoft Windows 10
-##  CPU Type:  Intel x86 Compatible
-##  Compiler:  MinGW GNU gfortran 11.2
-##  Parallel:  OpenMP
+ifeq ($(use_gfortran__), true)
+  ifeq ($(os__), Linux)
+    ifeq ($(opt), release)
+      OPTFLAGS := -Ofast -msse3 -fopenmp
+    else ifeq ($(opt), profile)
+      OPTFLAGS :=
+    else
+      # debug
+      OPTFLAGS := -Og -fbacktrace -fcheck=bounds -Wunused -Wmaybe-uninitialized
+    endif
+    F77FLAGS := -c
+    LIBDIR := -L. -L$(TINKER_LIBDIR)/linux
+    LIBS :=
+    LIBFLAGS := -crusv
+    RANLIB := ranlib
+    LINKFLAGS := $(OPTFLAGS) -static-libgcc
+    RENAME := rename_bin
+  endif
 
-#F77 = gfortran
-#F77FLAGS = -c
-#OPTFLAGS = -Ofast -march=native -fopenmp
-#OPTFLAGS = -Ofast -msse3 -fopenmp
-#LIBDIR = -L. -L$(TINKER_LIBDIR)/windows
-#LIBS = 
-#LIBFLAGS = -crusv
-#RANLIB = ranlib
-#LINKFLAGS = $(OPTFLAGS) -static
-#RENAME = rename_exe
+  ifeq ($(os__), Darwin)
+    ifeq ($(opt), release)
+      OPTFLAGS := -Ofast -mssse3 -fopenmp
+    else ifeq ($(opt), profile)
+      OPTFLAGS :=
+    else
+      # debug
+      OPTFLAGS := -Og -fbacktrace -fcheck=bounds -Wunused -Wmaybe-uninitialized
+    endif
+    F77FLAGS := -c
+    LIBDIR := -L. -L$(TINKER_LIBDIR)/macos
+    LIBS :=
+    LIBFLAGS := -crusv
+    RANLIB := ranlib -c
+    LINKFLAGS := $(OPTFLAGS) -static-libgcc
+    RENAME := rename_bin
+  endif
 
-##  Build:     Tinker
-##  OS Type:   Generic Linux
-##  CPU Type:  Intel x86 Compatible (also AMD)
-##  Compiler:  Intel Fortran for Linux 15.0
-##  Parallel:  OpenMP
+  ifeq ($(shell echo $(os__) | cut -c 1-9), CYGWIN_NT)
+    ifeq ($(opt), release)
+      OPTFLAGS := -Ofast -msse3 -fopenmp
+    else ifeq ($(opt), profile)
+      OPTFLAGS :=
+    else
+      # debug
+      OPTFLAGS :=
+    endif
+    F77FLAGS := -c
+    LIBDIR := -L. -L$(TINKER_LIBDIR)/windows
+    LIBS :=
+    LIBFLAGS := -crusv
+    RANLIB := ranlib
+    LINKFLAGS := $(OPTFLAGS) -static
+    RENAME := rename_exe
+  endif
+endif
 
-#F77 = ifort
-#F77FLAGS = -c -xHost
-#OPTFLAGS = -O3 -no-ipo -no-prec-div -recursive -qopenmp
-#LIBDIR = -L. -L$(TINKER_LIBDIR)/linux
-#LIBS = 
-#LIBFLAGS = -crusv
-#RANLIB = echo
-#LINKFLAGS = $(OPTFLAGS) -static-libgcc -static-intel
-#RENAME = rename_bin
+ifeq ($(use_ifort__), true)
+  ifeq ($(os__), Linux)
+    ifeq ($(opt), release)
+      OPTFLAGS := -O3 -no-ipo -no-prec-div -recursive -qopenmp
+    else ifeq ($(opt), profile)
+      OPTFLAGS :=
+    else
+      # debug
+      OPTFLAGS :=
+    endif
+    F77FLAGS := -c -xHost
+    LIBDIR := -L. -L$(TINKER_LIBDIR)/linux
+    LIBS :=
+    LIBFLAGS := -crusv
+    RANLIB := echo
+    LINKFLAGS := $(OPTFLAGS) -static-libgcc -static-intel
+    RENAME := rename_bin
+  endif
 
-##  Build:     Tinker
-##  OS Type:   Apple macOS
-##  CPU Type:  Intel Xeon
-##  Compiler:  Intel Fortran for macOS 15.0
-##  Parallel:  OpenMP
-
-#F77 = ifort
-#F77FLAGS = -c -axSSSE3
-#OPTFLAGS = -O3 -no-ipo -no-prec-div -mdynamic-no-pic -qopenmp
-#LIBDIR = -L. -L$(TINKER_LIBDIR)/macos
-#LIBS = 
-#LIBFLAGS = -crusv
-#RANLIB = ranlib -c
-#LINKFLAGS = $(OPTFLAGS) -static-intel -Wl,-stack_size,0x10000000
-#RENAME = rename_bin
+  ifeq ($(os__), Darwin)
+    ifeq ($(opt), release)
+      OPTFLAGS := -O3 -no-ipo -no-prec-div -mdynamic-no-pic -qopenmp
+    else ifeq ($(opt), profile)
+      OPTFLAGS :=
+    else
+      # debug
+      OPTFLAGS :=
+    endif
+    F77FLAGS := -c -axSSSE3
+    LIBDIR := -L. -L$(TINKER_LIBDIR)/macos
+    LIBS :=
+    LIBFLAGS := -crusv
+    RANLIB := ranlib -c
+    LINKFLAGS := $(OPTFLAGS) -static-intel -Wl,-stack_size,0x10000000
+    RENAME := rename_bin
+  endif
+endif
 
 #################################################################
 ##  Should not be Necessary to Change Things Below this Point  ##
 #################################################################
 
-OBJS =	action.o \
-	active.o \
-	alchemy.o \
-	align.o \
-	alterchg.o \
-	analysis.o \
-	analyz.o \
-	analyze.o \
-	angang.o \
-	angbnd.o \
-	angles.o \
-	angpot.o \
-	angtor.o \
-	anneal.o \
-	archive.o \
-	argue.o \
-	ascii.o \
-	atmlst.o \
-	atomid.o \
-	atoms.o \
-	attach.o \
-	baoab.o \
-	bar.o \
-	basefile.o \
-	bath.o \
-	beeman.o \
-	bicubic.o \
-	bitor.o \
-	bitors.o \
-	bndpot.o \
-	bndstr.o \
-	bonds.o \
-	born.o \
-	bound.o \
-	bounds.o \
-	boxes.o \
-	bussi.o \
-	calendar.o \
-	cell.o \
-	center.o \
-	cflux.o \
-	charge.o \
-	chgpen.o \
-	chgpot.o \
-	chgtrn.o \
-	chkpole.o \
-	chkring.o \
-	chkxyz.o \
-	cholesky.o \
-	chrono.o \
-	chunks.o \
-	clock.o \
-	cluster.o \
-	column.o \
-	command.o \
-	connect.o \
-	connolly.o \
-	control.o \
-	correlate.o \
-	couple.o \
-	critical.o \
-	crystal.o \
-	cspline.o \
-	ctrpot.o \
-	cutoffs.o \
-	damping.o \
-	dcflux.o \
-	deflate.o \
-	delete.o \
-	deriv.o \
-	diagq.o \
-	diffeq.o \
-	diffuse.o \
-	dipole.o \
-	disgeo.o \
-	disp.o \
-	distgeom.o \
-	dma.o \
-	document.o \
-	domega.o \
-	dsppot.o \
-	dynamic.o \
-	eangang.o \
-	eangang1.o \
-	eangang2.o \
-	eangang3.o \
-	eangle.o \
-	eangle1.o \
-	eangle2.o \
-	eangle3.o \
-	eangtor.o \
-	eangtor1.o \
-	eangtor2.o \
-	eangtor3.o \
-	ebond.o \
-	ebond1.o \
-	ebond2.o \
-	ebond3.o \
-	ebuck.o \
-	ebuck1.o \
-	ebuck2.o \
-	ebuck3.o \
-	echarge.o \
-	echarge1.o \
-	echarge2.o \
-	echarge3.o \
-	echgdpl.o \
-	echgdpl1.o \
-	echgdpl2.o \
-	echgdpl3.o \
-	echgtrn.o \
-	echgtrn1.o \
-	echgtrn2.o \
-	echgtrn3.o \
-	edipole.o \
-	edipole1.o \
-	edipole2.o \
-	edipole3.o \
-	edisp.o \
-	edisp1.o \
-	edisp2.o \
-	edisp3.o \
-	egauss.o \
-	egauss1.o \
-	egauss2.o \
-	egauss3.o \
-	egeom.o \
-	egeom1.o \
-	egeom2.o \
-	egeom3.o \
-	ehal.o \
-	ehal1.o \
-	ehal2.o \
-	ehal3.o \
-	eimprop.o \
-	eimprop1.o \
-	eimprop2.o \
-	eimprop3.o \
-	eimptor.o \
-	eimptor1.o \
-	eimptor2.o \
-	eimptor3.o \
-	elj.o \
-	elj1.o \
-	elj2.o \
-	elj3.o \
-	embed.o \
-	emetal.o \
-	emetal1.o \
-	emetal2.o \
-	emetal3.o \
-	emm3hb.o \
-	emm3hb1.o \
-	emm3hb2.o \
-	emm3hb3.o \
-	empole.o \
-	empole1.o \
-	empole2.o \
-	empole3.o \
-	energi.o \
-	energy.o \
-	eopbend.o \
-	eopbend1.o \
-	eopbend2.o \
-	eopbend3.o \
-	eopdist.o \
-	eopdist1.o \
-	eopdist2.o \
-	eopdist3.o \
-	epitors.o \
-	epitors1.o \
-	epitors2.o \
-	epitors3.o \
-	epolar.o \
-	epolar1.o \
-	epolar2.o \
-	epolar3.o \
-	erepel.o \
-	erepel1.o \
-	erepel2.o \
-	erepel3.o \
-	erf.o \
-	erxnfld.o \
-	erxnfld1.o \
-	erxnfld2.o \
-	erxnfld3.o \
-	esolv.o \
-	esolv1.o \
-	esolv2.o \
-	esolv3.o \
-	estrbnd.o \
-	estrbnd1.o \
-	estrbnd2.o \
-	estrbnd3.o \
-	estrtor.o \
-	estrtor1.o \
-	estrtor2.o \
-	estrtor3.o \
-	etors.o \
-	etors1.o \
-	etors2.o \
-	etors3.o \
-	etortor.o \
-	etortor1.o \
-	etortor2.o \
-	etortor3.o \
-	eurey.o \
-	eurey1.o \
-	eurey2.o \
-	eurey3.o \
-	evcorr.o \
-	ewald.o \
-	extra.o \
-	extra1.o \
-	extra2.o \
-	extra3.o \
-	faces.o \
-	fatal.o \
-	fft.o \
-	fft3d.o \
-	fftpack.o \
-	field.o \
-	fields.o \
-	files.o \
-	final.o \
-	flatten.o \
-	fracs.o \
-	freefix.o \
-	freeunit.o \
-	freeze.o \
-	gda.o \
-	geometry.o \
-	getarc.o \
-	getint.o \
-	getkey.o \
-	getmol.o \
-	getmol2.o \
-	getnumb.o \
-	getpdb.o \
-	getprm.o \
-	getref.o \
-	getstring.o \
-	gettext.o \
-	getword.o \
-	getxyz.o \
-	ghmcstep.o \
-	gkstuf.o \
-	gradient.o \
-	gradrgd.o \
-	gradrot.o \
-	group.o \
-	groups.o \
-	grpline.o \
-	gyrate.o \
-	hescut.o \
-	hessian.o \
-	hessn.o \
-	hessrgd.o \
-	hessrot.o \
-	hpmf.o \
-	hybrid.o \
-	ielscf.o \
-	image.o \
-	impose.o \
-	improp.o \
-	imptor.o \
-	induce.o \
-	inertia.o \
-	inform.o \
-	initatom.o \
-	initial.o \
-	initprm.o \
-	initres.o \
-	initrot.o \
-	insert.o \
-	intedit.o \
-	inter.o \
-	intxyz.o \
-	invbeta.o \
-	invert.o \
-	iounit.o \
-	jacobi.o \
-	kanang.o \
-	kangang.o \
-	kangle.o \
-	kangs.o \
-	kangtor.o \
-	kantor.o \
-	katom.o \
-	katoms.o \
-	kbond.o \
-	kbonds.o \
-	kcflux.o \
-	kcharge.o \
-	kchgflx.o \
-	kchgtrn.o \
-	kchrge.o \
-	kcpen.o \
-	kctrn.o \
-	kdipol.o \
-	kdipole.o \
-	kdisp.o \
-	kdsp.o \
-	kewald.o \
-	kextra.o \
-	keys.o \
-	kgeom.o \
-	khbond.o \
-	kimprop.o \
-	kimptor.o \
-	kinetic.o \
-	kiprop.o \
-	kitors.o \
-	kmetal.o \
-	kmpole.o \
-	kmulti.o \
-	kopbend.o \
-	kopbnd.o \
-	kopdist.o \
-	kopdst.o \
-	korbit.o \
-	korbs.o \
-	kpitor.o \
-	kpitors.o \
-	kpolar.o \
-	kpolr.o \
-	krepel.o \
-	krepl.o \
-	ksolut.o \
-	ksolv.o \
-	kstbnd.o \
-	kstrbnd.o \
-	kstrtor.o \
-	ksttor.o \
-	ktors.o \
-	ktorsn.o \
-	ktortor.o \
-	ktrtor.o \
-	kurey.o \
-	kurybr.o \
-	kvdw.o \
-	kvdwpr.o \
-	kvdws.o \
-	lattice.o \
-	lbfgs.o \
-	light.o \
-	lights.o \
-	limits.o \
-	linmin.o \
-	lusolve.o \
-	makeint.o \
-	makeref.o \
-	makexyz.o \
-	math.o \
-	maxwell.o \
-	mdinit.o \
-	mdrest.o \
-	mdsave.o \
-	mdstat.o \
-	mdstuf.o \
-	mechanic.o \
-	merck.o \
-	merge.o \
-	minima.o \
-	minimize.o \
-	minirot.o \
-	minrigid.o \
-	mol2xyz.o \
-	molcul.o \
-	moldyn.o \
-	molecule.o \
-	molxyz.o \
-	moment.o \
-	moments.o \
-	monte.o \
-	mplpot.o \
-	mpole.o \
-	mrecip.o \
-	mutant.o \
-	mutate.o \
-	nblist.o \
-	neigh.o \
-	newton.o \
-	newtrot.o \
-	nextarg.o \
-	nexttext.o \
-	nonpol.o \
-	nose.o \
-	nspline.o \
-	nucleic.o \
-	nucleo.o \
-	number.o \
-	numeral.o \
-	numgrad.o \
-	ocvm.o \
-	omega.o \
-	opbend.o \
-	opdist.o \
-	openend.o \
-	openmp.o \
-	optimize.o \
-	optinit.o \
-	optirot.o \
-	optrigid.o \
-	optsave.o \
-	orbital.o \
-	orbits.o \
-	orient.o \
-	orthog.o \
-	output.o \
-	overlap.o \
-	params.o \
-	path.o \
-	paths.o \
-	pbstuf.o \
-	pdb.o \
-	pdbxyz.o \
-	phipsi.o \
-	picalc.o \
-	piorbs.o \
-	pistuf.o \
-	pitors.o \
-	pme.o \
-	pmestuf.o \
-	pmpb.o \
-	polar.o \
-	polarize.o \
-	poledit.o \
-	polgrp.o \
-	polopt.o \
-	polpcg.o \
-	polpot.o \
-	poltcg.o \
-	polymer.o \
-	potent.o \
-	potential.o \
-	potfit.o \
-	predict.o \
-	pressure.o \
-	prmedit.o \
-	prmkey.o \
-	promo.o \
-	protein.o \
-	prtdyn.o \
-	prterr.o \
-	prtint.o \
-	prtmol2.o \
-	prtpdb.o \
-	prtprm.o \
-	prtseq.o \
-	prtxyz.o \
-	pss.o \
-	pssrigid.o \
-	pssrot.o \
-	ptable.o \
-	qmstuf.o \
-	qrsolve.o \
-	quatfit.o \
-	radial.o \
-	random.o \
-	rattle.o \
-	readdyn.o \
-	readgau.o \
-	readgdma.o \
-	readint.o \
-	readmol.o \
-	readmol2.o \
-	readpdb.o \
-	readprm.o \
-	readseq.o \
-	readxyz.o \
-	refer.o \
-	repel.o \
-	replica.o \
-	reppot.o \
-	resdue.o \
-	respa.o \
-	restrn.o \
-	rgddyn.o \
-	rgdstep.o \
-	rigid.o \
-	ring.o \
-	rings.o \
-	rmsfit.o \
-	rotbnd.o \
-	rotlist.o \
-	rotpole.o \
-	rxnfld.o \
-	rxnpot.o \
-	saddle.o \
-	scales.o \
-	scan.o \
-	sdstep.o \
-	search.o \
-	sequen.o \
-	server.o \
-	shakeup.o \
-	shunt.o \
-	sigmoid.o \
-	simplex.o \
-	sizes.o \
-	sktstuf.o \
-	sniffer.o \
-	socket.o \
-	solpot.o \
-	solute.o \
-	sort.o \
-	spacefill.o \
-	spectrum.o \
-	square.o \
-	stodyn.o \
-	strbnd.o \
-	strtor.o \
-	suffix.o \
-	superpose.o \
-	surface.o \
-	surfatom.o \
-	switch.o \
-	syntrn.o \
-	tarray.o \
-	tcgstuf.o \
-	temper.o \
-	testgrad.o \
-	testhess.o \
-	testpair.o \
-	testpol.o \
-	testrot.o \
-	testvir.o \
-	timer.o \
-	timerot.o \
-	titles.o \
-	tncg.o \
-	torphase.o \
-	torpot.o \
-	torque.o \
-	tors.o \
-	torsfit.o \
-	torsions.o \
-	tortor.o \
-	tree.o \
-	trimtext.o \
-	unitcell.o \
-	units.o \
-	uprior.o \
-	urey.o \
-	urypot.o \
-	usage.o \
-	valence.o \
-	valfit.o \
-	vdw.o \
-	vdwpot.o \
-	verlet.o \
-	version.o \
-	vibbig.o \
-	vibrate.o \
-	vibrot.o \
-	vibs.o \
-	virial.o \
-	volume.o \
-	warp.o \
-	xtalfit.o \
-	xtalmin.o \
-	xtals.o \
-	xyzatm.o \
-	xyzedit.o \
-	xyzint.o \
-	xyzmol2.o \
-	xyzpdb.o \
-	zatom.o \
-	zclose.o \
-	zcoord.o
+LIBOBJS := action.o active.o align.o alterchg.o analysis.o analyz.o \
+ angang.o angbnd.o angles.o angpot.o angtor.o argue.o ascii.o \
+ atmlst.o atomid.o atoms.o attach.o baoab.o basefile.o bath.o \
+ beeman.o bicubic.o bitor.o bitors.o bndpot.o bndstr.o bonds.o \
+ born.o bound.o bounds.o boxes.o bussi.o calendar.o cell.o center.o \
+ cflux.o charge.o chgpen.o chgpot.o chgtrn.o chkpole.o chkring.o \
+ chkxyz.o cholesky.o chrono.o chunks.o clock.o cluster.o column.o \
+ command.o connect.o connolly.o control.o couple.o cspline.o ctrpot.o \
+ cutoffs.o damping.o dcflux.o deflate.o delete.o deriv.o diagq.o \
+ diffeq.o dipole.o disgeo.o disp.o dma.o domega.o dsppot.o eangang.o \
+ eangang1.o eangang2.o eangang3.o eangle.o eangle1.o eangle2.o \
+ eangle3.o eangtor.o eangtor1.o eangtor2.o eangtor3.o ebond.o \
+ ebond1.o ebond2.o ebond3.o ebuck.o ebuck1.o ebuck2.o ebuck3.o \
+ echarge.o echarge1.o echarge2.o echarge3.o echgdpl.o echgdpl1.o \
+ echgdpl2.o echgdpl3.o echgtrn.o echgtrn1.o echgtrn2.o echgtrn3.o \
+ edipole.o edipole1.o edipole2.o edipole3.o edisp.o edisp1.o edisp2.o \
+ edisp3.o egauss.o egauss1.o egauss2.o egauss3.o egeom.o egeom1.o \
+ egeom2.o egeom3.o ehal.o ehal1.o ehal2.o ehal3.o eimprop.o eimprop1.o \
+ eimprop2.o eimprop3.o eimptor.o eimptor1.o eimptor2.o eimptor3.o \
+ elj.o elj1.o elj2.o elj3.o embed.o emetal.o emetal1.o emetal2.o \
+ emetal3.o emm3hb.o emm3hb1.o emm3hb2.o emm3hb3.o empole.o empole1.o \
+ empole2.o empole3.o energi.o energy.o eopbend.o eopbend1.o eopbend2.o \
+ eopbend3.o eopdist.o eopdist1.o eopdist2.o eopdist3.o epitors.o \
+ epitors1.o epitors2.o epitors3.o epolar.o epolar1.o epolar2.o \
+ epolar3.o erepel.o erepel1.o erepel2.o erepel3.o erf.o erxnfld.o \
+ erxnfld1.o erxnfld2.o erxnfld3.o esolv.o esolv1.o esolv2.o esolv3.o \
+ estrbnd.o estrbnd1.o estrbnd2.o estrbnd3.o estrtor.o estrtor1.o \
+ estrtor2.o estrtor3.o etors.o etors1.o etors2.o etors3.o etortor.o \
+ etortor1.o etortor2.o etortor3.o eurey.o eurey1.o eurey2.o eurey3.o \
+ evcorr.o ewald.o expol.o extra.o extra1.o extra2.o extra3.o faces.o \
+ fatal.o fft.o fft3d.o fftpack.o field.o fields.o files.o final.o \
+ flatten.o fracs.o freeunit.o freeze.o geometry.o getarc.o getint.o \
+ getkey.o getmol.o getmol2.o getnumb.o getpdb.o getprm.o getref.o \
+ getstring.o gettext.o getword.o getxyz.o ghmcstep.o gkstuf.o \
+ gradient.o gradrgd.o gradrot.o group.o groups.o grpline.o gyrate.o \
+ hescut.o hessian.o hessn.o hessrgd.o hessrot.o hpmf.o hybrid.o \
+ ielscf.o image.o impose.o improp.o imptor.o induce.o inertia.o \
+ inform.o initatom.o initial.o initprm.o initres.o initrot.o insert.o \
+ inter.o invbeta.o invert.o iounit.o jacobi.o kanang.o kangang.o \
+ kangle.o kangs.o kangtor.o kantor.o katom.o katoms.o kbond.o \
+ kbonds.o kcflux.o kcharge.o kchgflx.o kchgtrn.o kchrge.o kcpen.o \
+ kctrn.o kdipol.o kdipole.o kdisp.o kdsp.o kewald.o kexpl.o kexpol.o \
+ kextra.o keys.o kgeom.o khbond.o kimprop.o kimptor.o kinetic.o \
+ kiprop.o kitors.o kmetal.o kmpole.o kmulti.o kopbend.o kopbnd.o \
+ kopdist.o kopdst.o korbit.o korbs.o kpitor.o kpitors.o kpolar.o \
+ kpolr.o krepel.o krepl.o ksolut.o ksolv.o kstbnd.o kstrbnd.o \
+ kstrtor.o ksttor.o ktors.o ktorsn.o ktortor.o ktrtor.o kurey.o \
+ kurybr.o kvdw.o kvdwpr.o kvdws.o lattice.o lbfgs.o light.o lights.o \
+ limits.o linmin.o lusolve.o makeint.o makeref.o makexyz.o math.o \
+ maxwell.o mdinit.o mdrest.o mdsave.o mdstat.o mdstuf.o mechanic.o \
+ merck.o merge.o minima.o molcul.o moldyn.o molecule.o moment.o \
+ moments.o mplpot.o mpole.o mrecip.o mutant.o mutate.o nblist.o \
+ neigh.o nextarg.o nexttext.o nonpol.o nose.o nspline.o nucleo.o \
+ number.o numeral.o numgrad.o ocvm.o omega.o opbend.o opdist.o \
+ openend.o openmp.o optinit.o optsave.o orbital.o orbits.o orient.o \
+ orthog.o output.o overlap.o params.o paths.o pbstuf.o pdb.o phipsi.o \
+ picalc.o piorbs.o pistuf.o pitors.o pme.o pmestuf.o pmpb.o polar.o \
+ polgrp.o polopt.o polpcg.o polpot.o poltcg.o polymer.o potent.o \
+ potfit.o predict.o pressure.o prmkey.o promo.o prtdyn.o prterr.o \
+ prtint.o prtmol2.o prtpdb.o prtprm.o prtseq.o prtxyz.o ptable.o \
+ qmstuf.o qrsolve.o quatfit.o random.o rattle.o readdyn.o readgau.o \
+ readgdma.o readint.o readmol.o readmol2.o readpdb.o readprm.o \
+ readseq.o readxyz.o refer.o repel.o replica.o reppot.o resdue.o \
+ respa.o restrn.o rgddyn.o rgdstep.o rigid.o ring.o rings.o rmsfit.o \
+ rotbnd.o rotlist.o rotpole.o rxnfld.o rxnpot.o scales.o sdstep.o \
+ search.o sequen.o server.o shakeup.o shunt.o sigmoid.o simplex.o \
+ sizes.o sktstuf.o socket.o solpot.o solute.o sort.o square.o \
+ stodyn.o strbnd.o strtor.o suffix.o surface.o surfatom.o switch.o \
+ syntrn.o tarray.o tcgstuf.o temper.o titles.o tncg.o torphase.o \
+ torpot.o torque.o tors.o torsions.o tortor.o tree.o trimtext.o \
+ unitcell.o units.o uprior.o urey.o urypot.o usage.o valfit.o \
+ vdw.o vdwpot.o verlet.o version.o vibs.o virial.o volume.o warp.o \
+ xtals.o xyzatm.o zatom.o zclose.o zcoord.o
 
-EXEFILES = alchemy.x \
-	    analyze.x \
-	    anneal.x \
-	    archive.x \
-	    bar.x \
-	    correlate.x \
-	    critical.x \
-	    crystal.x \
-	    diffuse.x \
-	    distgeom.x \
-	    document.x \
-	    dynamic.x \
-	    freefix.x \
-	    gda.x \
-	    intedit.x \
-	    intxyz.x \
-	    minimize.x \
-	    minirot.x \
-	    minrigid.x \
-	    mol2xyz.x \
-	    molxyz.x \
-	    monte.x \
-	    newton.x \
-	    newtrot.x \
-	    nucleic.x \
-	    optimize.x \
-	    optirot.x \
-	    optrigid.x \
-	    path.x \
-	    pdbxyz.x \
-	    polarize.x \
-	    poledit.x \
-	    potential.x \
-	    prmedit.x \
-	    protein.x \
-	    pss.x \
-	    pssrigid.x \
-	    pssrot.x \
-	    radial.x \
-	    saddle.x \
-	    scan.x \
-	    sniffer.x \
-	    spacefill.x \
-	    spectrum.x \
-	    superpose.x \
-	    testgrad.x \
-	    testhess.x \
-	    testpair.x \
-	    testpol.x \
-	    testrot.x \
-	    testvir.x \
-	    timer.x \
-	    timerot.x \
-	    torsfit.x \
-	    valence.x \
-	    vibbig.x \
-	    vibrate.x \
-	    vibrot.x \
-	    xtalfit.x \
-	    xtalmin.x \
-	    xyzedit.x \
-	    xyzint.x \
-	    xyzmol2.x \
-	    xyzpdb.x
+EXEOBJS := alchemy.o analyze.o anneal.o archive.o bar.o correlate.o \
+ critical.o crystal.o diffuse.o distgeom.o document.o dynamic.o \
+ freefix.o gda.o intedit.o intxyz.o minimize.o minirot.o minrigid.o \
+ mol2xyz.o molxyz.o monte.o newton.o newtrot.o nucleic.o optimize.o \
+ optirot.o optrigid.o path.o pdbxyz.o polarize.o poledit.o potential.o \
+ prmedit.o protein.o pss.o pssrigid.o pssrot.o radial.o saddle.o \
+ scan.o sniffer.o spacefill.o spectrum.o superpose.o testgrad.o \
+ testhess.o testpair.o testpol.o testrot.o testvir.o timer.o timerot.o \
+ torsfit.o valence.o vibbig.o vibrate.o vibrot.o xtalfit.o xtalmin.o \
+ xyzedit.o xyzint.o xyzmol2.o xyzpdb.o
 
-%.o: %.f
-	${F77} ${F77FLAGS} ${OPTFLAGS} $< -o $@ 
+OBJS := $(LIBOBJS) $(EXEOBJS)
+
+EXEFILES := alchemy.x analyze.x anneal.x archive.x bar.x correlate.x \
+ critical.x crystal.x diffuse.x distgeom.x document.x dynamic.x \
+ freefix.x gda.x intedit.x intxyz.x minimize.x minirot.x minrigid.x \
+ mol2xyz.x molxyz.x monte.x newton.x newtrot.x nucleic.x optimize.x \
+ optirot.x optrigid.x path.x pdbxyz.x polarize.x poledit.x potential.x \
+ prmedit.x protein.x pss.x pssrigid.x pssrot.x radial.x saddle.x \
+ scan.x sniffer.x spacefill.x spectrum.x superpose.x testgrad.x \
+ testhess.x testpair.x testpol.x testrot.x testvir.x timer.x timerot.x \
+ torsfit.x valence.x vibbig.x vibrate.x vibrot.x xtalfit.x xtalmin.x \
+ xyzedit.x xyzint.x xyzmol2.x xyzpdb.x
+
+%.o: $(src)/%.f
+	$(F77) $(F77FLAGS) $(OPTFLAGS) $< -o $@
 
 %.x: %.o libtinker.a
-	${F77} ${LINKFLAGS} -o $@ ${LIBDIR} ${FFTW_LIBDIR} $^ ${FFTW_LIBS} ${LIBS}; strip $@
+	$(F77) $(LINKFLAGS) -o $@ $(LIBDIR) $(FFTW_LIBDIR) $^ $(LIBS) $(FFTW_LIBS); strip $@
 
-all: ${EXEFILES}
+all: $(EXEFILES)
 
-install: ${RENAME}
+install: $(RENAME)
 
 clean:
 	rm -f *.o *.mod *.a *.x
 
 listing:
-	cat *.f *.c > tinker.txt
+	cat $(src)/*.f $(src)/*.c > tinker.txt
 
 rename_bin:
-	mv  alchemy.x    $(BINDIR)/alchemy
-	mv  analyze.x    $(BINDIR)/analyze
-	mv  anneal.x     $(BINDIR)/anneal
-	mv  archive.x    $(BINDIR)/archive
-	mv  bar.x        $(BINDIR)/bar
-	mv  correlate.x  $(BINDIR)/correlate
-	mv  critical.x   $(BINDIR)/critical
-	mv  crystal.x    $(BINDIR)/crystal
-	mv  diffuse.x    $(BINDIR)/diffuse
-	mv  distgeom.x   $(BINDIR)/distgeom
-	mv  document.x   $(BINDIR)/document
-	mv  dynamic.x    $(BINDIR)/dynamic
-	mv  freefix.x    $(BINDIR)/freefix
-	mv  gda.x        $(BINDIR)/gda
-	mv  intedit.x    $(BINDIR)/intedit
-	mv  intxyz.x     $(BINDIR)/intxyz
-	mv  minimize.x   $(BINDIR)/minimize
-	mv  minirot.x    $(BINDIR)/minirot
-	mv  minrigid.x   $(BINDIR)/minrigid
-	mv  mol2xyz.x    $(BINDIR)/mol2xyz
-	mv  molxyz.x     $(BINDIR)/molxyz
-	mv  monte.x      $(BINDIR)/monte
-	mv  newton.x     $(BINDIR)/newton
-	mv  newtrot.x    $(BINDIR)/newtrot
-	mv  nucleic.x    $(BINDIR)/nucleic
-	mv  optimize.x   $(BINDIR)/optimize
-	mv  optirot.x    $(BINDIR)/optirot
-	mv  optrigid.x   $(BINDIR)/optrigid
-	mv  path.x       $(BINDIR)/path
-	mv  pdbxyz.x     $(BINDIR)/pdbxyz
-	mv  polarize.x   $(BINDIR)/polarize
-	mv  poledit.x    $(BINDIR)/poledit
-	mv  potential.x  $(BINDIR)/potential
-	mv  prmedit.x    $(BINDIR)/prmedit
-	mv  protein.x    $(BINDIR)/protein
-	mv  pss.x        $(BINDIR)/pss
-	mv  pssrigid.x   $(BINDIR)/pssrigid
-	mv  pssrot.x     $(BINDIR)/pssrot
-	mv  radial.x     $(BINDIR)/radial
-	mv  saddle.x     $(BINDIR)/saddle
-	mv  scan.x       $(BINDIR)/scan
-	mv  sniffer.x    $(BINDIR)/sniffer
-	mv  spacefill.x  $(BINDIR)/spacefill
-	mv  spectrum.x   $(BINDIR)/spectrum
-	mv  superpose.x  $(BINDIR)/superpose
-	mv  testgrad.x   $(BINDIR)/testgrad
-	mv  testhess.x   $(BINDIR)/testhess
-	mv  testpair.x   $(BINDIR)/testpair
-	mv  testpol.x    $(BINDIR)/testpol
-	mv  testrot.x    $(BINDIR)/testrot
-	mv  testvir.x    $(BINDIR)/testvir
-	mv  timer.x      $(BINDIR)/timer
-	mv  timerot.x    $(BINDIR)/timerot
-	mv  torsfit.x    $(BINDIR)/torsfit
-	mv  valence.x    $(BINDIR)/valence
-	mv  vibbig.x     $(BINDIR)/vibbig
-	mv  vibrate.x    $(BINDIR)/vibrate
-	mv  vibrot.x     $(BINDIR)/vibrot
-	mv  xtalfit.x    $(BINDIR)/xtalfit
-	mv  xtalmin.x    $(BINDIR)/xtalmin
-	mv  xyzedit.x    $(BINDIR)/xyzedit
-	mv  xyzint.x     $(BINDIR)/xyzint
-	mv  xyzmol2.x    $(BINDIR)/xyzmol2
-	mv  xyzpdb.x     $(BINDIR)/xyzpdb
+	mv alchemy.x            $(BINDIR)/alchemy
+	mv analyze.x            $(BINDIR)/analyze
+	mv anneal.x             $(BINDIR)/anneal
+	mv archive.x            $(BINDIR)/archive
+	mv bar.x                $(BINDIR)/bar
+	mv correlate.x          $(BINDIR)/correlate
+	mv critical.x           $(BINDIR)/critical
+	mv crystal.x            $(BINDIR)/crystal
+	mv diffuse.x            $(BINDIR)/diffuse
+	mv distgeom.x           $(BINDIR)/distgeom
+	mv document.x           $(BINDIR)/document
+	mv dynamic.x            $(BINDIR)/dynamic
+	mv freefix.x            $(BINDIR)/freefix
+	mv gda.x                $(BINDIR)/gda
+	mv intedit.x            $(BINDIR)/intedit
+	mv intxyz.x             $(BINDIR)/intxyz
+	mv minimize.x           $(BINDIR)/minimize
+	mv minirot.x            $(BINDIR)/minirot
+	mv minrigid.x           $(BINDIR)/minrigid
+	mv mol2xyz.x            $(BINDIR)/mol2xyz
+	mv molxyz.x             $(BINDIR)/molxyz
+	mv monte.x              $(BINDIR)/monte
+	mv newton.x             $(BINDIR)/newton
+	mv newtrot.x            $(BINDIR)/newtrot
+	mv nucleic.x            $(BINDIR)/nucleic
+	mv optimize.x           $(BINDIR)/optimize
+	mv optirot.x            $(BINDIR)/optirot
+	mv optrigid.x           $(BINDIR)/optrigid
+	mv path.x               $(BINDIR)/path
+	mv pdbxyz.x             $(BINDIR)/pdbxyz
+	mv polarize.x           $(BINDIR)/polarize
+	mv poledit.x            $(BINDIR)/poledit
+	mv potential.x          $(BINDIR)/potential
+	mv prmedit.x            $(BINDIR)/prmedit
+	mv protein.x            $(BINDIR)/protein
+	mv pss.x                $(BINDIR)/pss
+	mv pssrigid.x           $(BINDIR)/pssrigid
+	mv pssrot.x             $(BINDIR)/pssrot
+	mv radial.x             $(BINDIR)/radial
+	mv saddle.x             $(BINDIR)/saddle
+	mv scan.x               $(BINDIR)/scan
+	mv sniffer.x            $(BINDIR)/sniffer
+	mv spacefill.x          $(BINDIR)/spacefill
+	mv spectrum.x           $(BINDIR)/spectrum
+	mv superpose.x          $(BINDIR)/superpose
+	mv testgrad.x           $(BINDIR)/testgrad
+	mv testhess.x           $(BINDIR)/testhess
+	mv testpair.x           $(BINDIR)/testpair
+	mv testpol.x            $(BINDIR)/testpol
+	mv testrot.x            $(BINDIR)/testrot
+	mv testvir.x            $(BINDIR)/testvir
+	mv timer.x              $(BINDIR)/timer
+	mv timerot.x            $(BINDIR)/timerot
+	mv torsfit.x            $(BINDIR)/torsfit
+	mv valence.x            $(BINDIR)/valence
+	mv vibbig.x             $(BINDIR)/vibbig
+	mv vibrate.x            $(BINDIR)/vibrate
+	mv vibrot.x             $(BINDIR)/vibrot
+	mv xtalfit.x            $(BINDIR)/xtalfit
+	mv xtalmin.x            $(BINDIR)/xtalmin
+	mv xyzedit.x            $(BINDIR)/xyzedit
+	mv xyzint.x             $(BINDIR)/xyzint
+	mv xyzmol2.x            $(BINDIR)/xyzmol2
+	mv xyzpdb.x             $(BINDIR)/xyzpdb
 
 rename_exe:
-	mv  alchemy.x    $(BINDIR)/alchemy.exe
-	mv  analyze.x    $(BINDIR)/analyze.exe
-	mv  anneal.x     $(BINDIR)/anneal.exe
-	mv  archive.x    $(BINDIR)/archive.exe
-	mv  bar.x        $(BINDIR)/bar.exe
-	mv  correlate.x  $(BINDIR)/correlate.exe
-	mv  critical.x   $(BINDIR)/critical.exe
-	mv  crystal.x    $(BINDIR)/crystal.exe
-	mv  diffuse.x    $(BINDIR)/diffuse.exe
-	mv  distgeom.x   $(BINDIR)/distgeom.exe
-	mv  document.x   $(BINDIR)/document.exe
-	mv  dynamic.x    $(BINDIR)/dynamic.exe
-	mv  freefix.x    $(BINDIR)/freefix.exe
-	mv  gda.x        $(BINDIR)/gda.exe
-	mv  intedit.x    $(BINDIR)/intedit.exe
-	mv  intxyz.x     $(BINDIR)/intxyz.exe
-	mv  minimize.x   $(BINDIR)/minimize.exe
-	mv  minirot.x    $(BINDIR)/minirot.exe
-	mv  minrigid.x   $(BINDIR)/minrigid.exe
-	mv  mol2xyz.x    $(BINDIR)/mol2xyz.exe
-	mv  molxyz.x     $(BINDIR)/molxyz.exe
-	mv  monte.x      $(BINDIR)/monte.exe
-	mv  newton.x     $(BINDIR)/newton.exe
-	mv  newtrot.x    $(BINDIR)/newtrot.exe
-	mv  nucleic.x    $(BINDIR)/nucleic.exe
-	mv  optimize.x   $(BINDIR)/optimize.exe
-	mv  optirot.x    $(BINDIR)/optirot.exe
-	mv  optrigid.x   $(BINDIR)/optrigid.exe
-	mv  path.x       $(BINDIR)/path.exe
-	mv  pdbxyz.x     $(BINDIR)/pdbxyz.exe
-	mv  polarize.x   $(BINDIR)/polarize.exe
-	mv  poledit.x    $(BINDIR)/poledit.exe
-	mv  potential.x  $(BINDIR)/potential.exe
-	mv  prmedit.x    $(BINDIR)/prmedit.exe
-	mv  protein.x    $(BINDIR)/protein.exe
-	mv  pss.x        $(BINDIR)/pss.exe
-	mv  pssrigid.x   $(BINDIR)/pssrigid.exe
-	mv  pssrot.x     $(BINDIR)/pssrot.exe
-	mv  radial.x     $(BINDIR)/radial.exe
-	mv  saddle.x     $(BINDIR)/saddle.exe
-	mv  scan.x       $(BINDIR)/scan.exe
-	mv  sniffer.x    $(BINDIR)/sniffer.exe
-	mv  spacefill.x  $(BINDIR)/spacefill.exe
-	mv  spectrum.x   $(BINDIR)/spectrum.exe
-	mv  superpose.x  $(BINDIR)/superpose.exe
-	mv  testgrad.x   $(BINDIR)/testgrad.exe
-	mv  testhess.x   $(BINDIR)/testhess.exe
-	mv  testpair.x   $(BINDIR)/testpair.exe
-	mv  testpol.x    $(BINDIR)/testpol.exe
-	mv  testrot.x    $(BINDIR)/testrot.exe
-	mv  testvir.x    $(BINDIR)/testvir.exe
-	mv  timer.x      $(BINDIR)/timer.exe
-	mv  timerot.x    $(BINDIR)/timerot.exe
-	mv  torsfit.x    $(BINDIR)/torsfit.exe
-	mv  valence.x    $(BINDIR)/valence.exe
-	mv  vibbig.x     $(BINDIR)/vibbig.exe
-	mv  vibrate.x    $(BINDIR)/vibrate.exe
-	mv  vibrot.x     $(BINDIR)/vibrot.exe
-	mv  xtalfit.x    $(BINDIR)/xtalfit.exe
-	mv  xtalmin.x    $(BINDIR)/xtalmin.exe
-	mv  xyzedit.x    $(BINDIR)/xyzedit.exe
-	mv  xyzint.x     $(BINDIR)/xyzint.exe
-	mv  xyzmol2.x    $(BINDIR)/xyzmol2.exe
-	mv  xyzpdb.x     $(BINDIR)/xyzpdb.exe
+	mv alchemy.x            $(BINDIR)/alchemy.exe
+	mv analyze.x            $(BINDIR)/analyze.exe
+	mv anneal.x             $(BINDIR)/anneal.exe
+	mv archive.x            $(BINDIR)/archive.exe
+	mv bar.x                $(BINDIR)/bar.exe
+	mv correlate.x          $(BINDIR)/correlate.exe
+	mv critical.x           $(BINDIR)/critical.exe
+	mv crystal.x            $(BINDIR)/crystal.exe
+	mv diffuse.x            $(BINDIR)/diffuse.exe
+	mv distgeom.x           $(BINDIR)/distgeom.exe
+	mv document.x           $(BINDIR)/document.exe
+	mv dynamic.x            $(BINDIR)/dynamic.exe
+	mv freefix.x            $(BINDIR)/freefix.exe
+	mv gda.x                $(BINDIR)/gda.exe
+	mv intedit.x            $(BINDIR)/intedit.exe
+	mv intxyz.x             $(BINDIR)/intxyz.exe
+	mv minimize.x           $(BINDIR)/minimize.exe
+	mv minirot.x            $(BINDIR)/minirot.exe
+	mv minrigid.x           $(BINDIR)/minrigid.exe
+	mv mol2xyz.x            $(BINDIR)/mol2xyz.exe
+	mv molxyz.x             $(BINDIR)/molxyz.exe
+	mv monte.x              $(BINDIR)/monte.exe
+	mv newton.x             $(BINDIR)/newton.exe
+	mv newtrot.x            $(BINDIR)/newtrot.exe
+	mv nucleic.x            $(BINDIR)/nucleic.exe
+	mv optimize.x           $(BINDIR)/optimize.exe
+	mv optirot.x            $(BINDIR)/optirot.exe
+	mv optrigid.x           $(BINDIR)/optrigid.exe
+	mv path.x               $(BINDIR)/path.exe
+	mv pdbxyz.x             $(BINDIR)/pdbxyz.exe
+	mv polarize.x           $(BINDIR)/polarize.exe
+	mv poledit.x            $(BINDIR)/poledit.exe
+	mv potential.x          $(BINDIR)/potential.exe
+	mv prmedit.x            $(BINDIR)/prmedit.exe
+	mv protein.x            $(BINDIR)/protein.exe
+	mv pss.x                $(BINDIR)/pss.exe
+	mv pssrigid.x           $(BINDIR)/pssrigid.exe
+	mv pssrot.x             $(BINDIR)/pssrot.exe
+	mv radial.x             $(BINDIR)/radial.exe
+	mv saddle.x             $(BINDIR)/saddle.exe
+	mv scan.x               $(BINDIR)/scan.exe
+	mv sniffer.x            $(BINDIR)/sniffer.exe
+	mv spacefill.x          $(BINDIR)/spacefill.exe
+	mv spectrum.x           $(BINDIR)/spectrum.exe
+	mv superpose.x          $(BINDIR)/superpose.exe
+	mv testgrad.x           $(BINDIR)/testgrad.exe
+	mv testhess.x           $(BINDIR)/testhess.exe
+	mv testpair.x           $(BINDIR)/testpair.exe
+	mv testpol.x            $(BINDIR)/testpol.exe
+	mv testrot.x            $(BINDIR)/testrot.exe
+	mv testvir.x            $(BINDIR)/testvir.exe
+	mv timer.x              $(BINDIR)/timer.exe
+	mv timerot.x            $(BINDIR)/timerot.exe
+	mv torsfit.x            $(BINDIR)/torsfit.exe
+	mv valence.x            $(BINDIR)/valence.exe
+	mv vibbig.x             $(BINDIR)/vibbig.exe
+	mv vibrate.x            $(BINDIR)/vibrate.exe
+	mv vibrot.x             $(BINDIR)/vibrot.exe
+	mv xtalfit.x            $(BINDIR)/xtalfit.exe
+	mv xtalmin.x            $(BINDIR)/xtalmin.exe
+	mv xyzedit.x            $(BINDIR)/xyzedit.exe
+	mv xyzint.x             $(BINDIR)/xyzint.exe
+	mv xyzmol2.x            $(BINDIR)/xyzmol2.exe
+	mv xyzpdb.x             $(BINDIR)/xyzpdb.exe
 
 remove_links:
 	rm -f $(LINKDIR)/alchemy
@@ -1001,581 +498,74 @@ remove_links:
 	rm -f $(LINKDIR)/xyzpdb
 
 create_links:
-	ln -s $(BINDIR)/alchemy    $(LINKDIR)/alchemy
-	ln -s $(BINDIR)/analyze    $(LINKDIR)/analyze
-	ln -s $(BINDIR)/anneal     $(LINKDIR)/anneal
-	ln -s $(BINDIR)/archive    $(LINKDIR)/archive
-	ln -s $(BINDIR)/bar        $(LINKDIR)/bar
-	ln -s $(BINDIR)/correlate  $(LINKDIR)/correlate
-	ln -s $(BINDIR)/critical   $(LINKDIR)/critical
-	ln -s $(BINDIR)/crystal    $(LINKDIR)/crystal
-	ln -s $(BINDIR)/diffuse    $(LINKDIR)/diffuse
-	ln -s $(BINDIR)/distgeom   $(LINKDIR)/distgeom
-	ln -s $(BINDIR)/document   $(LINKDIR)/document
-	ln -s $(BINDIR)/dynamic    $(LINKDIR)/dynamic
-	ln -s $(BINDIR)/freefix    $(LINKDIR)/freefix
-	ln -s $(BINDIR)/gda        $(LINKDIR)/gda
-	ln -s $(BINDIR)/intedit    $(LINKDIR)/intedit
-	ln -s $(BINDIR)/intxyz     $(LINKDIR)/intxyz
-	ln -s $(BINDIR)/minimize   $(LINKDIR)/minimize
-	ln -s $(BINDIR)/minirot    $(LINKDIR)/minirot
-	ln -s $(BINDIR)/minrigid   $(LINKDIR)/minrigid
-	ln -s $(BINDIR)/mol2xyz    $(LINKDIR)/mol2xyz
-	ln -s $(BINDIR)/molxyz     $(LINKDIR)/molxyz
-	ln -s $(BINDIR)/monte      $(LINKDIR)/monte
-	ln -s $(BINDIR)/newton     $(LINKDIR)/newton
-	ln -s $(BINDIR)/newtrot    $(LINKDIR)/newtrot
-	ln -s $(BINDIR)/nucleic    $(LINKDIR)/nucleic
-	ln -s $(BINDIR)/optimize   $(LINKDIR)/optimize
-	ln -s $(BINDIR)/optirot    $(LINKDIR)/optirot
-	ln -s $(BINDIR)/optrigid   $(LINKDIR)/optrigid
-	ln -s $(BINDIR)/path       $(LINKDIR)/path
-	ln -s $(BINDIR)/pdbxyz     $(LINKDIR)/pdbxyz
-	ln -s $(BINDIR)/polarize   $(LINKDIR)/polarize
-	ln -s $(BINDIR)/poledit    $(LINKDIR)/poledit
-	ln -s $(BINDIR)/potential  $(LINKDIR)/potential
-	ln -s $(BINDIR)/prmedit    $(LINKDIR)/prmedit
-	ln -s $(BINDIR)/protein    $(LINKDIR)/protein
-	ln -s $(BINDIR)/pss        $(LINKDIR)/pss
-	ln -s $(BINDIR)/pssrigid   $(LINKDIR)/pssrigid
-	ln -s $(BINDIR)/pssrot     $(LINKDIR)/pssrot
-	ln -s $(BINDIR)/radial     $(LINKDIR)/radial
-	ln -s $(BINDIR)/saddle     $(LINKDIR)/saddle
-	ln -s $(BINDIR)/scan       $(LINKDIR)/scan
-	ln -s $(BINDIR)/sniffer    $(LINKDIR)/sniffer
-	ln -s $(BINDIR)/spacefill  $(LINKDIR)/spacefill
-	ln -s $(BINDIR)/spectrum   $(LINKDIR)/spectrum
-	ln -s $(BINDIR)/superpose  $(LINKDIR)/superpose
-	ln -s $(BINDIR)/testgrad   $(LINKDIR)/testgrad
-	ln -s $(BINDIR)/testhess   $(LINKDIR)/testhess
-	ln -s $(BINDIR)/testpair   $(LINKDIR)/testpair
-	ln -s $(BINDIR)/testpol    $(LINKDIR)/testpol
-	ln -s $(BINDIR)/testrot    $(LINKDIR)/testrot
-	ln -s $(BINDIR)/testvir    $(LINKDIR)/testvir
-	ln -s $(BINDIR)/timer      $(LINKDIR)/timer
-	ln -s $(BINDIR)/timerot    $(LINKDIR)/timerot
-	ln -s $(BINDIR)/torsfit    $(LINKDIR)/torsfit
-	ln -s $(BINDIR)/valence    $(LINKDIR)/valence
-	ln -s $(BINDIR)/vibbig     $(LINKDIR)/vibbig
-	ln -s $(BINDIR)/vibrate    $(LINKDIR)/vibrate
-	ln -s $(BINDIR)/vibrot     $(LINKDIR)/vibrot
-	ln -s $(BINDIR)/xtalfit    $(LINKDIR)/xtalfit
-	ln -s $(BINDIR)/xtalmin    $(LINKDIR)/xtalmin
-	ln -s $(BINDIR)/xyzedit    $(LINKDIR)/xyzedit
-	ln -s $(BINDIR)/xyzint     $(LINKDIR)/xyzint
-	ln -s $(BINDIR)/xyzmol2    $(LINKDIR)/xyzmol2
-	ln -s $(BINDIR)/xyzpdb     $(LINKDIR)/xyzpdb
+	ln -s $(BINDIR)/alchemy         $(LINKDIR)/alchemy
+	ln -s $(BINDIR)/analyze         $(LINKDIR)/analyze
+	ln -s $(BINDIR)/anneal          $(LINKDIR)/anneal
+	ln -s $(BINDIR)/archive         $(LINKDIR)/archive
+	ln -s $(BINDIR)/bar             $(LINKDIR)/bar
+	ln -s $(BINDIR)/correlate       $(LINKDIR)/correlate
+	ln -s $(BINDIR)/critical        $(LINKDIR)/critical
+	ln -s $(BINDIR)/crystal         $(LINKDIR)/crystal
+	ln -s $(BINDIR)/diffuse         $(LINKDIR)/diffuse
+	ln -s $(BINDIR)/distgeom        $(LINKDIR)/distgeom
+	ln -s $(BINDIR)/document        $(LINKDIR)/document
+	ln -s $(BINDIR)/dynamic         $(LINKDIR)/dynamic
+	ln -s $(BINDIR)/freefix         $(LINKDIR)/freefix
+	ln -s $(BINDIR)/gda             $(LINKDIR)/gda
+	ln -s $(BINDIR)/intedit         $(LINKDIR)/intedit
+	ln -s $(BINDIR)/intxyz          $(LINKDIR)/intxyz
+	ln -s $(BINDIR)/minimize        $(LINKDIR)/minimize
+	ln -s $(BINDIR)/minirot         $(LINKDIR)/minirot
+	ln -s $(BINDIR)/minrigid        $(LINKDIR)/minrigid
+	ln -s $(BINDIR)/mol2xyz         $(LINKDIR)/mol2xyz
+	ln -s $(BINDIR)/molxyz          $(LINKDIR)/molxyz
+	ln -s $(BINDIR)/monte           $(LINKDIR)/monte
+	ln -s $(BINDIR)/newton          $(LINKDIR)/newton
+	ln -s $(BINDIR)/newtrot         $(LINKDIR)/newtrot
+	ln -s $(BINDIR)/nucleic         $(LINKDIR)/nucleic
+	ln -s $(BINDIR)/optimize        $(LINKDIR)/optimize
+	ln -s $(BINDIR)/optirot         $(LINKDIR)/optirot
+	ln -s $(BINDIR)/optrigid        $(LINKDIR)/optrigid
+	ln -s $(BINDIR)/path            $(LINKDIR)/path
+	ln -s $(BINDIR)/pdbxyz          $(LINKDIR)/pdbxyz
+	ln -s $(BINDIR)/polarize        $(LINKDIR)/polarize
+	ln -s $(BINDIR)/poledit         $(LINKDIR)/poledit
+	ln -s $(BINDIR)/potential       $(LINKDIR)/potential
+	ln -s $(BINDIR)/prmedit         $(LINKDIR)/prmedit
+	ln -s $(BINDIR)/protein         $(LINKDIR)/protein
+	ln -s $(BINDIR)/pss             $(LINKDIR)/pss
+	ln -s $(BINDIR)/pssrigid        $(LINKDIR)/pssrigid
+	ln -s $(BINDIR)/pssrot          $(LINKDIR)/pssrot
+	ln -s $(BINDIR)/radial          $(LINKDIR)/radial
+	ln -s $(BINDIR)/saddle          $(LINKDIR)/saddle
+	ln -s $(BINDIR)/scan            $(LINKDIR)/scan
+	ln -s $(BINDIR)/sniffer         $(LINKDIR)/sniffer
+	ln -s $(BINDIR)/spacefill       $(LINKDIR)/spacefill
+	ln -s $(BINDIR)/spectrum        $(LINKDIR)/spectrum
+	ln -s $(BINDIR)/superpose       $(LINKDIR)/superpose
+	ln -s $(BINDIR)/testgrad        $(LINKDIR)/testgrad
+	ln -s $(BINDIR)/testhess        $(LINKDIR)/testhess
+	ln -s $(BINDIR)/testpair        $(LINKDIR)/testpair
+	ln -s $(BINDIR)/testpol         $(LINKDIR)/testpol
+	ln -s $(BINDIR)/testrot         $(LINKDIR)/testrot
+	ln -s $(BINDIR)/testvir         $(LINKDIR)/testvir
+	ln -s $(BINDIR)/timer           $(LINKDIR)/timer
+	ln -s $(BINDIR)/timerot         $(LINKDIR)/timerot
+	ln -s $(BINDIR)/torsfit         $(LINKDIR)/torsfit
+	ln -s $(BINDIR)/valence         $(LINKDIR)/valence
+	ln -s $(BINDIR)/vibbig          $(LINKDIR)/vibbig
+	ln -s $(BINDIR)/vibrate         $(LINKDIR)/vibrate
+	ln -s $(BINDIR)/vibrot          $(LINKDIR)/vibrot
+	ln -s $(BINDIR)/xtalfit         $(LINKDIR)/xtalfit
+	ln -s $(BINDIR)/xtalmin         $(LINKDIR)/xtalmin
+	ln -s $(BINDIR)/xyzedit         $(LINKDIR)/xyzedit
+	ln -s $(BINDIR)/xyzint          $(LINKDIR)/xyzint
+	ln -s $(BINDIR)/xyzmol2         $(LINKDIR)/xyzmol2
+	ln -s $(BINDIR)/xyzpdb          $(LINKDIR)/xyzpdb
 
-libtinker.a: ${OBJS} 
-	ar ${LIBFLAGS} libtinker.a \
-	action.o \
-	active.o \
-	align.o \
-	alterchg.o \
-	analysis.o \
-	analyz.o \
-	angang.o \
-	angbnd.o \
-	angles.o \
-	angpot.o \
-	angtor.o \
-	argue.o \
-	ascii.o \
-	atmlst.o \
-	atomid.o \
-	atoms.o \
-	attach.o \
-	baoab.o \
-	basefile.o \
-	bath.o \
-	beeman.o \
-	bicubic.o \
-	bitor.o \
-	bitors.o \
-	bndpot.o \
-	bndstr.o \
-	bonds.o \
-	born.o \
-	bound.o \
-	bounds.o \
-	boxes.o \
-	bussi.o \
-	calendar.o \
-	cell.o \
-	center.o \
-	cflux.o \
-	charge.o \
-	chgpen.o \
-	chgpot.o \
-	chgtrn.o \
-	chkpole.o \
-	chkring.o \
-	chkxyz.o \
-	cholesky.o \
-	chrono.o \
-	chunks.o \
-	clock.o \
-	cluster.o \
-	column.o \
-	command.o \
-	connect.o \
-	connolly.o \
-	control.o \
-	couple.o \
-	cspline.o \
-	ctrpot.o \
-	cutoffs.o \
-	damping.o \
-	dcflux.o \
-	deflate.o \
-	delete.o \
-	deriv.o \
-	diagq.o \
-	diffeq.o \
-	dipole.o \
-	disgeo.o \
-	disp.o \
-	dma.o \
-	domega.o \
-	dsppot.o \
-	eangang.o \
-	eangang1.o \
-	eangang2.o \
-	eangang3.o \
-	eangle.o \
-	eangle1.o \
-	eangle2.o \
-	eangle3.o \
-	eangtor.o \
-	eangtor1.o \
-	eangtor2.o \
-	eangtor3.o \
-	ebond.o \
-	ebond1.o \
-	ebond2.o \
-	ebond3.o \
-	ebuck.o \
-	ebuck1.o \
-	ebuck2.o \
-	ebuck3.o \
-	echarge.o \
-	echarge1.o \
-	echarge2.o \
-	echarge3.o \
-	echgdpl.o \
-	echgdpl1.o \
-	echgdpl2.o \
-	echgdpl3.o \
-	echgtrn.o \
-	echgtrn1.o \
-	echgtrn2.o \
-	echgtrn3.o \
-	edipole.o \
-	edipole1.o \
-	edipole2.o \
-	edipole3.o \
-	edisp.o \
-	edisp1.o \
-	edisp2.o \
-	edisp3.o \
-	egauss.o \
-	egauss1.o \
-	egauss2.o \
-	egauss3.o \
-	egeom.o \
-	egeom1.o \
-	egeom2.o \
-	egeom3.o \
-	ehal.o \
-	ehal1.o \
-	ehal2.o \
-	ehal3.o \
-	eimprop.o \
-	eimprop1.o \
-	eimprop2.o \
-	eimprop3.o \
-	eimptor.o \
-	eimptor1.o \
-	eimptor2.o \
-	eimptor3.o \
-	elj.o \
-	elj1.o \
-	elj2.o \
-	elj3.o \
-	embed.o \
-	emetal.o \
-	emetal1.o \
-	emetal2.o \
-	emetal3.o \
-	emm3hb.o \
-	emm3hb1.o \
-	emm3hb2.o \
-	emm3hb3.o \
-	empole.o \
-	empole1.o \
-	empole2.o \
-	empole3.o \
-	energi.o \
-	energy.o \
-	eopbend.o \
-	eopbend1.o \
-	eopbend2.o \
-	eopbend3.o \
-	eopdist.o \
-	eopdist1.o \
-	eopdist2.o \
-	eopdist3.o \
-	epitors.o \
-	epitors1.o \
-	epitors2.o \
-	epitors3.o \
-	epolar.o \
-	epolar1.o \
-	epolar2.o \
-	epolar3.o \
-	erepel.o \
-	erepel1.o \
-	erepel2.o \
-	erepel3.o \
-	erf.o \
-	erxnfld.o \
-	erxnfld1.o \
-	erxnfld2.o \
-	erxnfld3.o \
-	esolv.o \
-	esolv1.o \
-	esolv2.o \
-	esolv3.o \
-	estrbnd.o \
-	estrbnd1.o \
-	estrbnd2.o \
-	estrbnd3.o \
-	estrtor.o \
-	estrtor1.o \
-	estrtor2.o \
-	estrtor3.o \
-	etors.o \
-	etors1.o \
-	etors2.o \
-	etors3.o \
-	etortor.o \
-	etortor1.o \
-	etortor2.o \
-	etortor3.o \
-	eurey.o \
-	eurey1.o \
-	eurey2.o \
-	eurey3.o \
-	evcorr.o \
-	ewald.o \
-	extra.o \
-	extra1.o \
-	extra2.o \
-	extra3.o \
-	faces.o \
-	fatal.o \
-	fft.o \
-	fft3d.o \
-	fftpack.o \
-	field.o \
-	fields.o \
-	files.o \
-	final.o \
-	flatten.o \
-	fracs.o \
-	freeunit.o \
-	freeze.o \
-	geometry.o \
-	getarc.o \
-	getint.o \
-	getkey.o \
-	getmol.o \
-	getmol2.o \
-	getnumb.o \
-	getpdb.o \
-	getprm.o \
-	getref.o \
-	getstring.o \
-	gettext.o \
-	getword.o \
-	getxyz.o \
-	ghmcstep.o \
-	gkstuf.o \
-	gradient.o \
-	gradrgd.o \
-	gradrot.o \
-	group.o \
-	groups.o \
-	grpline.o \
-	gyrate.o \
-	hescut.o \
-	hessian.o \
-	hessn.o \
-	hessrgd.o \
-	hessrot.o \
-	hpmf.o \
-	hybrid.o \
-	ielscf.o \
-	image.o \
-	impose.o \
-	improp.o \
-	imptor.o \
-	induce.o \
-	inertia.o \
-	inform.o \
-	initatom.o \
-	initial.o \
-	initprm.o \
-	initres.o \
-	initrot.o \
-	insert.o \
-	inter.o \
-	invbeta.o \
-	invert.o \
-	iounit.o \
-	jacobi.o \
-	kanang.o \
-	kangang.o \
-	kangle.o \
-	kangs.o \
-	kangtor.o \
-	kantor.o \
-	katom.o \
-	katoms.o \
-	kbond.o \
-	kbonds.o \
-	kcflux.o \
-	kcharge.o \
-	kchgflx.o \
-	kchgtrn.o \
-	kchrge.o \
-	kcpen.o \
-	kctrn.o \
-	kdipol.o \
-	kdipole.o \
-	kdisp.o \
-	kdsp.o \
-	kewald.o \
-	kextra.o \
-	keys.o \
-	kgeom.o \
-	khbond.o \
-	kimprop.o \
-	kimptor.o \
-	kinetic.o \
-	kiprop.o \
-	kitors.o \
-	kmetal.o \
-	kmpole.o \
-	kmulti.o \
-	kopbend.o \
-	kopbnd.o \
-	kopdist.o \
-	kopdst.o \
-	korbit.o \
-	korbs.o \
-	kpitor.o \
-	kpitors.o \
-	kpolar.o \
-	kpolr.o \
-	krepel.o \
-	krepl.o \
-	ksolut.o \
-	ksolv.o \
-	kstbnd.o \
-	kstrbnd.o \
-	kstrtor.o \
-	ksttor.o \
-	ktors.o \
-	ktorsn.o \
-	ktortor.o \
-	ktrtor.o \
-	kurey.o \
-	kurybr.o \
-	kvdw.o \
-	kvdwpr.o \
-	kvdws.o \
-	lattice.o \
-	lbfgs.o \
-	light.o \
-	lights.o \
-	limits.o \
-	linmin.o \
-	lusolve.o \
-	makeint.o \
-	makeref.o \
-	makexyz.o \
-	math.o \
-	maxwell.o \
-	mdinit.o \
-	mdrest.o \
-	mdsave.o \
-	mdstat.o \
-	mdstuf.o \
-	mechanic.o \
-	merck.o \
-	merge.o \
-	minima.o \
-	molcul.o \
-	moldyn.o \
-	molecule.o \
-	moment.o \
-	moments.o \
-	mplpot.o \
-	mpole.o \
-	mrecip.o \
-	mutant.o \
-	mutate.o \
-	nblist.o \
-	neigh.o \
-	nextarg.o \
-	nexttext.o \
-	nonpol.o \
-	nose.o \
-	nspline.o \
-	nucleo.o \
-	number.o \
-	numeral.o \
-	numgrad.o \
-	ocvm.o \
-	omega.o \
-	opbend.o \
-	opdist.o \
-	openend.o \
-	openmp.o \
-	optinit.o \
-	optsave.o \
-	orbital.o \
-	orbits.o \
-	orient.o \
-	orthog.o \
-	output.o \
-	overlap.o \
-	params.o \
-	paths.o \
-	pbstuf.o \
-	pdb.o \
-	phipsi.o \
-	picalc.o \
-	piorbs.o \
-	pistuf.o \
-	pitors.o \
-	pme.o \
-	pmestuf.o \
-	pmpb.o \
-	polar.o \
-	polgrp.o \
-	polopt.o \
-	polpcg.o \
-	polpot.o \
-	poltcg.o \
-	polymer.o \
-	potent.o \
-	potfit.o \
-	predict.o \
-	pressure.o \
-	prmkey.o \
-	promo.o \
-	prtdyn.o \
-	prterr.o \
-	prtint.o \
-	prtmol2.o \
-	prtpdb.o \
-	prtprm.o \
-	prtseq.o \
-	prtxyz.o \
-	ptable.o \
-	qmstuf.o \
-	qrsolve.o \
-	quatfit.o \
-	random.o \
-	rattle.o \
-	readdyn.o \
-	readgau.o \
-	readgdma.o \
-	readint.o \
-	readmol.o \
-	readmol2.o \
-	readpdb.o \
-	readprm.o \
-	readseq.o \
-	readxyz.o \
-	refer.o \
-	repel.o \
-	replica.o \
-	reppot.o \
-	resdue.o \
-	respa.o \
-	restrn.o \
-	rgddyn.o \
-	rgdstep.o \
-	rigid.o \
-	ring.o \
-	rings.o \
-	rmsfit.o \
-	rotbnd.o \
-	rotlist.o \
-	rotpole.o \
-	rxnfld.o \
-	rxnpot.o \
-	scales.o \
-	sdstep.o \
-	search.o \
-	sequen.o \
-	server.o \
-	shakeup.o \
-	shunt.o \
-	sigmoid.o \
-	simplex.o \
-	sizes.o \
-	sktstuf.o \
-	socket.o \
-	solpot.o \
-	solute.o \
-	sort.o \
-	square.o \
-	stodyn.o \
-	strbnd.o \
-	strtor.o \
-	suffix.o \
-	surface.o \
-	surfatom.o \
-	switch.o \
-	syntrn.o \
-	tarray.o \
-	tcgstuf.o \
-	temper.o \
-	titles.o \
-	tncg.o \
-	torphase.o \
-	torpot.o \
-	torque.o \
-	tors.o \
-	torsions.o \
-	tortor.o \
-	tree.o \
-	trimtext.o \
-	unitcell.o \
-	units.o \
-	uprior.o \
-	urey.o \
-	urypot.o \
-	usage.o \
-	valfit.o \
-	vdw.o \
-	vdwpot.o \
-	verlet.o \
-	version.o \
-	vibs.o \
-	virial.o \
-	volume.o \
-	warp.o \
-	xtals.o \
-	xyzatm.o \
-	zatom.o \
-	zclose.o \
-	zcoord.o
-	${RANLIB} libtinker.a
+libtinker.a: $(LIBOBJS)
+	ar $(LIBFLAGS) libtinker.a $(LIBOBJS)
+	$(RANLIB) libtinker.a
 
 ###############################################################
 ##  Next Section has Explicit Dependencies on Include Files  ##
@@ -1623,6 +613,7 @@ cell.o:
 center.o: align.o
 cflux.o:
 charge.o:
+chgpen.o:
 chgpot.o:
 chgtrn.o:
 chkpole.o: atoms.o mpole.o
@@ -1645,7 +636,7 @@ crystal.o: atomid.o atoms.o bound.o boxes.o couple.o files.o iounit.o math.o mol
 cspline.o: iounit.o
 ctrpot.o:
 cutoffs.o: atoms.o bound.o hescut.o keys.o limits.o neigh.o polpot.o tarray.o
-damping.o: ewald.o math.o mplpot.o polar.o polpot.o
+damping.o: ewald.o expol.o math.o mplpot.o polar.o polpot.o
 dcflux.o: angbnd.o atoms.o bndstr.o bound.o cflux.o sizes.o
 deflate.o: iounit.o
 delete.o: atomid.o atoms.o couple.o inform.o iounit.o
@@ -1660,6 +651,7 @@ distgeom.o: angbnd.o atomid.o atoms.o bndstr.o couple.o disgeo.o files.o inform.
 dma.o:
 document.o: iounit.o
 domega.o:
+dsppot.o:
 dynamic.o: atoms.o bath.o bndstr.o bound.o inform.o iounit.o keys.o mdstuf.o potent.o stodyn.o usage.o
 eangang.o: angang.o angbnd.o angpot.o atoms.o bound.o energi.o group.o math.o usage.o
 eangang1.o: angang.o angbnd.o angpot.o atoms.o bound.o deriv.o energi.o group.o math.o usage.o virial.o
@@ -1791,6 +783,7 @@ eurey2.o: atoms.o bound.o couple.o group.o hessn.o urey.o urypot.o
 eurey3.o: action.o analyz.o atomid.o atoms.o bound.o energi.o group.o inform.o iounit.o urey.o urypot.o usage.o
 evcorr.o: atomid.o atoms.o bound.o boxes.o kdsp.o limits.o math.o mutant.o potent.o shunt.o vdw.o vdwpot.o
 ewald.o:
+expol.o:
 extra.o: energi.o
 extra1.o: atoms.o deriv.o energi.o
 extra2.o: atoms.o hessn.o
@@ -1850,7 +843,7 @@ inertia.o: atomid.o atoms.o iounit.o math.o
 inform.o:
 initatom.o: ptable.o
 initial.o: align.o atoms.o bath.o bound.o boxes.o cell.o fft.o files.o group.o inform.o iounit.o keys.o linmin.o minima.o molcul.o mutant.o neigh.o openmp.o output.o params.o pdb.o rigid.o scales.o sequen.o socket.o virial.o warp.o zclose.o
-initprm.o: angpot.o bndpot.o chgpot.o ctrpot.o dsppot.o fields.o ielscf.o kanang.o kangs.o kantor.o katoms.o kbonds.o kcflux.o kchrge.o kcpen.o kctrn.o kdipol.o kdsp.o khbond.o kiprop.o kitors.o kmulti.o kopbnd.o kopdst.o korbs.o kpitor.o kpolr.o krepl.o ksolut.o kstbnd.o ksttor.o ktorsn.o ktrtor.o kurybr.o kvdwpr.o kvdws.o math.o merck.o mplpot.o polpot.o reppot.o rxnpot.o sizes.o solpot.o solute.o torpot.o units.o uprior.o urypot.o vdwpot.o
+initprm.o: angpot.o bndpot.o chgpot.o ctrpot.o dsppot.o expol.o fields.o ielscf.o kanang.o kangs.o kantor.o katoms.o kbonds.o kcflux.o kchrge.o kcpen.o kctrn.o kdipol.o kdsp.o kexpl.o khbond.o kiprop.o kitors.o kmulti.o kopbnd.o kopdst.o korbs.o kpitor.o kpolr.o krepl.o ksolut.o kstbnd.o ksttor.o ktorsn.o ktrtor.o kurybr.o kvdwpr.o kvdws.o math.o merck.o mplpot.o polpot.o reppot.o rxnpot.o sizes.o solpot.o solute.o torpot.o units.o uprior.o urypot.o vdwpot.o
 initres.o: resdue.o
 initrot.o: atoms.o couple.o group.o inform.o iounit.o math.o omega.o potent.o restrn.o rotbnd.o usage.o zcoord.o
 insert.o: atomid.o atoms.o couple.o inform.o iounit.o
@@ -1883,6 +876,8 @@ kdipole.o: atmlst.o atoms.o bndstr.o couple.o dipole.o inform.o iounit.o kdipol.
 kdisp.o: atomid.o atoms.o disp.o dsppot.o inform.o iounit.o kdsp.o keys.o limits.o potent.o sizes.o
 kdsp.o:
 kewald.o: atoms.o bound.o boxes.o chunks.o ewald.o fft.o inform.o iounit.o keys.o limits.o openmp.o pme.o potent.o
+kexpl.o:
+kexpol.o: atomid.o atoms.o expol.o inform.o iounit.o kexpl.o keys.o mpole.o polpot.o sizes.o
 kextra.o:
 keys.o:
 kgeom.o: atomid.o atoms.o bound.o couple.o group.o iounit.o keys.o molcul.o potent.o restrn.o
@@ -2019,7 +1014,7 @@ potfit.o: sizes.o
 predict.o: atomid.o atoms.o ielscf.o keys.o polar.o uprior.o
 pressure.o: atomid.o atoms.o bath.o bound.o boxes.o group.o math.o mdstuf.o molcul.o moldyn.o units.o usage.o virial.o
 prmedit.o: angpot.o bndpot.o iounit.o math.o params.o sizes.o urypot.o vdwpot.o
-prmkey.o: angpot.o bndpot.o chgpot.o ctrpot.o dsppot.o fields.o mplpot.o polpot.o potent.o reppot.o rxnpot.o torpot.o urypot.o vdwpot.o
+prmkey.o: angpot.o bndpot.o chgpot.o ctrpot.o dsppot.o expol.o fields.o mplpot.o polpot.o potent.o reppot.o rxnpot.o torpot.o urypot.o vdwpot.o
 promo.o: iounit.o
 protein.o: atomid.o atoms.o couple.o files.o group.o inform.o iounit.o katoms.o math.o molcul.o output.o phipsi.o potent.o resdue.o restrn.o rigid.o sequen.o titles.o usage.o
 prtdyn.o: atoms.o boxes.o files.o group.o mdstuf.o moldyn.o rgddyn.o titles.o
