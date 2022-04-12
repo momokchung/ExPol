@@ -1,0 +1,35 @@
+
+           #########################################################
+           Tinker-APBS Poisson-Boltzmann Solvation Energy Test Cases
+           #########################################################
+
+         This directory contains five protein structures used for APBS
+         implicit solvent calculations in Schnieders' published paper.
+         See Table VI in JCP, 126, 124114 (2007). To get approximately
+         the electrostatic energy values reported in the paper, use the
+         tinker.key file provided here and make sure AMOEBA Rmin values
+         are used for PB radii (ie, APBS-RADII VDW). The values below
+         are in kcal/mol and computed using Tinker 8 and APBS 1.3.
+
+         PROTEIN    SPACING       GRID SIZE          JCP       TINKER
+
+          CRN         0.61         65x65x65       -679.1       -683.3
+          CRN         0.31      129x129x129       -641.3       -643.0
+          CRN         0.18      225x225x225       -632.1       -633.3
+
+          ENH         0.61         65x65x65      -2055.1      -2056.8
+          ENH         0.31      129x129x129      -2008.8      -2009.3
+          ENH         0.18      225x225x225      -1991.1      -1992.4
+
+          FSV         0.61         65x65x65      -1293.8      -1302.2
+          FSV         0.31      129x129x129      -1269.3      -1268.4
+          FSV         0.18      225x225x225      -1257.1      -1257.7
+
+          PGB         0.61         65x65x65      -1453.5      -1450.7
+          PGB         0.31      129x129x129      -1400.5      -1394.4
+          PGB         0.18      225x225x225      -1380.3      -1380.8
+
+          VII         0.61         65x65x65      -1009.8      -1010.3
+          VII         0.31      129x129x129       -970.6       -973.0
+          VII         0.18      225x225x225       -962.0       -963.8
+
