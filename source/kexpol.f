@@ -46,7 +46,7 @@ c
          record = keyline(i)
          call gettext (record,keyword,next)
          call upcase (keyword)
-         if (keyword(1:8) .eq. 'EXCHIND ') then
+         if (keyword(1:8) .eq. 'EXCHPOL ') then
             k = 0
             ppr = 0.0d0
             apr = 0.0d0
@@ -107,7 +107,7 @@ c
          record = keyline(i)
          call gettext (record,keyword,next)
          call upcase (keyword)
-         if (keyword(1:8) .eq. 'EXCHIND ') then
+         if (keyword(1:8) .eq. 'EXCHPOL ') then
             ia = 0
             ppr = 0.0d0
             apr = 0.0d0
