@@ -214,6 +214,7 @@ c
       if (.not. allocated(reduct))  allocate (reduct(maxtyp))
       if (.not. allocated(prsiz))  allocate (prsiz(maxclass))
       if (.not. allocated(prdmp))  allocate (prdmp(maxclass))
+      if (.not. allocated(pepk))  allocate (pepk(maxclass))
       if (.not. allocated(peppre))  allocate (peppre(maxclass))
       if (.not. allocated(pepdmp))  allocate (pepdmp(maxclass))
       if (.not. allocated(prele))  allocate (prele(maxclass))
@@ -272,6 +273,7 @@ c
          prsiz(i) = 0.0d0
          prdmp(i) = 0.0d0
          prele(i) = 0.0d0
+         pepk(i) = 0.0d0
          peppre(i) = 0.0d0
          pepdmp(i) = 0.0d0
          dspsix(i) = 0.0d0
