@@ -31,7 +31,7 @@ fftw := /home/kchung25/tinker/fftw
 ##  APBS_LIB_DIR    Directory with APBS Libraries
 ##  APBS_LIBS       APBS Libraries needed to build Tinker
 
-TINKERDIR := /home/kchung25/tinker_expol/tinker_main/source
+TINKERDIR := /home/kchung25/tinker_expol/tinker_expolV/source
 TINKER_LIBDIR := $(TINKERDIR)/lib
 BINDIR := $(TINKERDIR)/bin
 LINKDIR := /usr/local/bin
@@ -214,23 +214,23 @@ LIBOBJS := action.o active.o align.o alterchg.o analysis.o analyz.o \
  estrbnd.o estrbnd1.o estrbnd2.o estrbnd3.o estrtor.o estrtor1.o \
  estrtor2.o estrtor3.o etors.o etors1.o etors2.o etors3.o etortor.o \
  etortor1.o etortor2.o etortor3.o eurey.o eurey1.o eurey2.o eurey3.o \
- evcorr.o ewald.o expol.o extra.o extra1.o extra2.o extra3.o faces.o \
- fatal.o fft.o fft3d.o fftpack.o field.o fields.o files.o final.o \
- flatten.o fracs.o freeunit.o freeze.o geometry.o getarc.o getint.o \
- getkey.o getmol.o getmol2.o getnumb.o getpdb.o getprm.o getref.o \
- getstring.o gettext.o getword.o getxyz.o ghmcstep.o gkstuf.o \
- gradient.o gradrgd.o gradrot.o group.o groups.o grpline.o gyrate.o \
- hescut.o hessian.o hessn.o hessrgd.o hessrot.o hpmf.o hybrid.o \
- ielscf.o image.o impose.o improp.o imptor.o induce.o inertia.o \
- inform.o initatom.o initial.o initprm.o initres.o initrot.o insert.o \
- inter.o invbeta.o invert.o iounit.o jacobi.o kanang.o kangang.o \
- kangle.o kangs.o kangtor.o kantor.o katom.o katoms.o kbond.o \
- kbonds.o kcflux.o kcharge.o kchgflx.o kchgtrn.o kchrge.o kcpen.o \
- kctrn.o kdipol.o kdipole.o kdisp.o kdsp.o kewald.o kexpl.o kexpol.o \
- kextra.o keys.o kgeom.o khbond.o kimprop.o kimptor.o kinetic.o \
- kiprop.o kitors.o kmetal.o kmpole.o kmulti.o kopbend.o kopbnd.o \
- kopdist.o kopdst.o korbit.o korbs.o kpitor.o kpitors.o kpolar.o \
- kpolr.o krepel.o krepl.o ksolut.o ksolv.o kstbnd.o kstrbnd.o \
+ evcorr.o ewald.o expol.o expolar.o extra.o extra1.o extra2.o \
+ extra3.o faces.o fatal.o fft.o fft3d.o fftpack.o field.o fields.o \
+ files.o final.o flatten.o fracs.o freeunit.o freeze.o geometry.o \
+ getarc.o getint.o getkey.o getmol.o getmol2.o getnumb.o getpdb.o \
+ getprm.o getref.o getstring.o gettext.o getword.o getxyz.o ghmcstep.o \
+ gkstuf.o gradient.o gradrgd.o gradrot.o group.o groups.o grpline.o \
+ gyrate.o hescut.o hessian.o hessn.o hessrgd.o hessrot.o hpmf.o \
+ hybrid.o ielscf.o image.o impose.o improp.o imptor.o induce.o \
+ inertia.o inform.o initatom.o initial.o initprm.o initres.o initrot.o \
+ insert.o inter.o invbeta.o invert.o iounit.o jacobi.o kanang.o \
+ kangang.o kangle.o kangs.o kangtor.o kantor.o katom.o katoms.o \
+ kbond.o kbonds.o kcflux.o kcharge.o kchgflx.o kchgtrn.o kchrge.o \
+ kcpen.o kctrn.o kdipol.o kdipole.o kdisp.o kdsp.o kewald.o kexpl.o \
+ kexpol.o kextra.o keys.o kgeom.o khbond.o kimprop.o kimptor.o \
+ kinetic.o kiprop.o kitors.o kmetal.o kmpole.o kmulti.o kopbend.o \
+ kopbnd.o kopdist.o kopdst.o korbit.o korbs.o kpitor.o kpitors.o \
+ kpolar.o kpolr.o krepel.o krepl.o ksolut.o ksolv.o kstbnd.o kstrbnd.o \
  kstrtor.o ksttor.o ktors.o ktorsn.o ktortor.o ktrtor.o kurey.o \
  kurybr.o kvdw.o kvdwpr.o kvdws.o lattice.o lbfgs.o light.o lights.o \
  limits.o linmin.o lusolve.o makeint.o makeref.o makexyz.o math.o \
@@ -784,6 +784,7 @@ eurey3.o: action.o analyz.o atomid.o atoms.o bound.o energi.o group.o inform.o i
 evcorr.o: atomid.o atoms.o bound.o boxes.o kdsp.o limits.o math.o mutant.o potent.o shunt.o vdw.o vdwpot.o
 ewald.o:
 expol.o:
+expolar.o: atoms.o bound.o cell.o couple.o expol.o mpole.o polgrp.o polpot.o shunt.o
 extra.o: energi.o
 extra1.o: atoms.o deriv.o energi.o
 extra2.o: atoms.o hessn.o

@@ -140,6 +140,7 @@ c
 c
       subroutine induce0a
       use atoms
+      use expol
       use ielscf
       use inform
       use iounit
@@ -163,7 +164,10 @@ c
       real*8 udsum,upsum
       real*8 a,ap,b,bp
       real*8 sum,sump,term
+      real*8 springi
       real*8, allocatable :: poli(:)
+      real*8, allocatable :: expoli(:)
+      real*8, allocatable :: overlap2(:)
       real*8, allocatable :: field(:,:)
       real*8, allocatable :: fieldp(:,:)
       real*8, allocatable :: rsd(:,:)
@@ -319,6 +323,8 @@ c
 c     perform dynamic allocation of some local arrays
 c
          allocate (poli(npole))
+         allocate (expoli(npole))
+         allocate (overlap2(npole))
          allocate (rsd(3,npole))
          allocate (rsdp(3,npole))
          allocate (zrsd(3,npole))
@@ -338,11 +344,17 @@ c
             call ufield0a (field,fieldp)
          end if
 c
+c     get overlap squared
+c
+         call expolar (overlap2)
+c
 c     set initial values for the residual vector components
 c
          do i = 1, npole
             if (douind(ipole(i))) then
                poli(i) = max(polmin,polarity(i))
+               springi = kpep(i)
+               expoli(i) = poli(i) / (1 + springi*sqrt(overlap2(i)))
                do j = 1, 3
                   if (pcgguess) then
                      rsd(j,i) = (udir(j,i)-uind(j,i))/poli(i)
@@ -423,8 +435,8 @@ c
                   do j = 1, 3
                      uind(j,i) = vec(j,i)
                      uinp(j,i) = vecp(j,i)
-                     vec(j,i) = conj(j,i)/poli(i) - field(j,i)
-                     vecp(j,i) = conjp(j,i)/poli(i) - fieldp(j,i)
+                     vec(j,i) = conj(j,i)/expoli(i) - field(j,i)
+                     vecp(j,i) = conjp(j,i)/expoli(i) - fieldp(j,i)
                   end do
                end if
             end do
@@ -526,6 +538,8 @@ c
 c     perform deallocation of some local arrays
 c
          deallocate (poli)
+         deallocate (expoli)
+         deallocate (overlap2)
          deallocate (rsd)
          deallocate (rsdp)
          deallocate (zrsd)
