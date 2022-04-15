@@ -198,6 +198,8 @@ c     perform dynamic allocation of some local arrays
 c
       allocate (field(3,npole))
       allocate (fieldp(3,npole))
+      allocate (overlap2(npole))
+      allocate (expoli(npole))
 c
 c     compute induced dipoles based on direct and mutual fields
 c
@@ -213,16 +215,22 @@ c
          call dfield0a (field,fieldp)
       end if
 c
+c     get overlap squared
+c
+      call expolar (overlap2)
+c
 c     set induced dipoles to polarizability times direct field
 c
       do i = 1, npole
          if (douind(ipole(i))) then
+            springi = kpep(i)
+            expoli(i) = polarity(i) / (1 + springi*sqrt(overlap2(i)))
             do j = 1, 3
                udir(j,i) = polarity(i) * field(j,i)
                udirp(j,i) = polarity(i) * fieldp(j,i)
                if (pcgguess) then
-                  uind(j,i) = udir(j,i)
-                  uinp(j,i) = udirp(j,i)
+                  uind(j,i) = expoli(i) * field(j,i)
+                  uinp(j,i) = expoli(i) * fieldp(j,i)
                end if
             end do
          end if
@@ -323,8 +331,6 @@ c
 c     perform dynamic allocation of some local arrays
 c
          allocate (poli(npole))
-         allocate (expoli(npole))
-         allocate (overlap2(npole))
          allocate (rsd(3,npole))
          allocate (rsdp(3,npole))
          allocate (zrsd(3,npole))
@@ -344,10 +350,6 @@ c
             call ufield0a (field,fieldp)
          end if
 c
-c     get overlap squared
-c
-         call expolar (overlap2)
-c
 c     set initial values for the residual vector components
 c
          do i = 1, npole
@@ -357,9 +359,9 @@ c
                expoli(i) = poli(i) / (1 + springi*sqrt(overlap2(i)))
                do j = 1, 3
                   if (pcgguess) then
-                     rsd(j,i) = (udir(j,i)-uind(j,i))/poli(i)
+                     rsd(j,i) = udir(j,i)/poli(i)-uind(j,i)/expoli(i)
      &                             + field(j,i)
-                     rsdp(j,i) = (udirp(j,i)-uinp(j,i))/poli(i)
+                     rsdp(j,i) = udirp(j,i)/poli(i)-uinp(j,i)/expoli(i)
      &                             + fieldp(j,i)
                   else
                      rsd(j,i) = udir(j,i) / poli(i)
@@ -538,8 +540,6 @@ c
 c     perform deallocation of some local arrays
 c
          deallocate (poli)
-         deallocate (expoli)
-         deallocate (overlap2)
          deallocate (rsd)
          deallocate (rsdp)
          deallocate (zrsd)
