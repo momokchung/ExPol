@@ -164,10 +164,11 @@ c
       real*8 udsum,upsum
       real*8 a,ap,b,bp
       real*8 sum,sump,term
-      real*8 springi
       real*8, allocatable :: poli(:)
-      real*8, allocatable :: expoli(:)
-      real*8, allocatable :: overlap2(:)
+      real*8, allocatable :: expoli(:,:,:)
+      real*8, allocatable :: exinvpoli(:,:,:)
+      real*8, allocatable :: polscale(:,:,:)
+      real*8, allocatable :: invpolscale(:,:,:)
       real*8, allocatable :: field(:,:)
       real*8, allocatable :: fieldp(:,:)
       real*8, allocatable :: rsd(:,:)
@@ -198,8 +199,10 @@ c     perform dynamic allocation of some local arrays
 c
       allocate (field(3,npole))
       allocate (fieldp(3,npole))
-      allocate (overlap2(npole))
-      allocate (expoli(npole))
+      allocate (expoli(3,3,npole))
+      allocate (exinvpoli(3,3,npole))
+      allocate (polscale(3,3,npole))
+      allocate (invpolscale(3,3,npole))
 c
 c     compute induced dipoles based on direct and mutual fields
 c
@@ -215,22 +218,27 @@ c
          call dfield0a (field,fieldp)
       end if
 c
-c     get overlap squared
+c     get invpolscale
 c
-      call expolar (overlap2)
+      call expolar (polscale,invpolscale)
 c
 c     set induced dipoles to polarizability times direct field
 c
       do i = 1, npole
          if (douind(ipole(i))) then
-            springi = kpep(i)
-            expoli(i) = polarity(i) / (1 + springi*sqrt(overlap2(i)))
+            do j = 1, 3
+               do k = 1, 3
+                  expoli(j,k,i) = polarity(i)*invpolscale(j,k,i)
+               end do
+            end do
             do j = 1, 3
                udir(j,i) = polarity(i) * field(j,i)
                udirp(j,i) = polarity(i) * fieldp(j,i)
                if (pcgguess) then
-                  uind(j,i) = expoli(i) * field(j,i)
-                  uinp(j,i) = expoli(i) * fieldp(j,i)
+                  do k = 1, 3
+                     uind(j,i) = uind(j,i) + expoli(j,k,i)*field(k,i)
+                     uinp(j,i) = uinp(j,i) + expoli(j,k,i)*fieldp(k,i)
+                  end do
                end if
             end do
          end if
@@ -355,14 +363,21 @@ c
          do i = 1, npole
             if (douind(ipole(i))) then
                poli(i) = max(polmin,polarity(i))
-               springi = kpep(i)
-               expoli(i) = poli(i) / (1 + springi*sqrt(overlap2(i)))
+               do j = 1, 3
+                  do k = 1, 3
+                     expoli(j,k,i) = 1/poli(i)*polscale(j,k,i)
+                  end do
+               end do
                do j = 1, 3
                   if (pcgguess) then
-                     rsd(j,i) = udir(j,i)/poli(i)-uind(j,i)/expoli(i)
-     &                             + field(j,i)
-                     rsdp(j,i) = udirp(j,i)/poli(i)-uinp(j,i)/expoli(i)
-     &                             + fieldp(j,i)
+                     rsd(j,i) = udir(j,i)/poli(i)
+     &                           -uind(1,i)*expoli(j,1,i)
+     &                           -uind(2,i)*expoli(j,2,i)
+     &                           -uind(3,i)*expoli(j,3,i) + field(j,i)
+                     rsdp(j,i) = udirp(j,i)/poli(i)
+     &                           -uinp(1,i)*expoli(j,1,i)
+     &                           -uinp(2,i)*expoli(j,2,i)
+     &                           -uinp(3,i)*expoli(j,3,i) + fieldp(j,i)
                   else
                      rsd(j,i) = udir(j,i) / poli(i)
                      rsdp(j,i) = udirp(j,i) / poli(i)
@@ -437,8 +452,12 @@ c
                   do j = 1, 3
                      uind(j,i) = vec(j,i)
                      uinp(j,i) = vecp(j,i)
-                     vec(j,i) = conj(j,i)/expoli(i) - field(j,i)
-                     vecp(j,i) = conjp(j,i)/expoli(i) - fieldp(j,i)
+                     vec(j,i) = conj(1,i)*expoli(j,1,i)
+     &                        + conj(2,i)*expoli(j,2,i)
+     &                        + conj(3,i)*expoli(j,3,i) - field(j,i)
+                     vecp(j,i) = conjp(1,i)*expoli(j,1,i)
+     &                         + conjp(2,i)*expoli(j,2,i)
+     &                         + conjp(3,i)*expoli(j,3,i) - fieldp(j,i)
                   end do
                end if
             end do
@@ -583,6 +602,10 @@ c     perform deallocation of some local arrays
 c
       deallocate (field)
       deallocate (fieldp)
+      deallocate (expoli)
+      deallocate (exinvpoli)
+      deallocate (polscale)
+      deallocate (invpolscale)
       return
       end
 c
