@@ -526,6 +526,7 @@ c
             epsold = eps
             eps = max(epsd,epsp)
             eps = debye * sqrt(eps/dble(npolar))
+            debug = .true.
             if (debug) then
                if (iter .eq. 1) then
                   write (iout,20)
@@ -537,7 +538,7 @@ c
    30          format (i8,7x,f16.10)
             end if
             if (eps .lt. poleps)  done = .true.
-            if (eps .gt. epsold)  done = .true.
+c            if (eps .gt. epsold)  done = .true.
             if (iter .lt. miniter)  done = .false.
             if (iter .ge. politer)  done = .true.
 c
