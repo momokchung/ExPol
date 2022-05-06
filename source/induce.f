@@ -220,7 +220,7 @@ c
 c
 c     get invpolscale
 c
-      call expolar (polscale,invpolscale)
+      call expolar3 (polscale,invpolscale)
 c
 c     set induced dipoles to polarizability times direct field
 c
@@ -229,6 +229,7 @@ c
             do j = 1, 3
                do k = 1, 3
                   expoli(j,k,i) = polarity(i)*invpolscale(j,k,i)
+c                  print*, 'expoli', i,j,k, expoli(j,k,i)
                end do
             end do
             do j = 1, 3

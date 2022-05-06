@@ -214,7 +214,7 @@ LIBOBJS := action.o active.o align.o alterchg.o analysis.o analyz.o \
  estrbnd.o estrbnd1.o estrbnd2.o estrbnd3.o estrtor.o estrtor1.o \
  estrtor2.o estrtor3.o etors.o etors1.o etors2.o etors3.o etortor.o \
  etortor1.o etortor2.o etortor3.o eurey.o eurey1.o eurey2.o eurey3.o \
- evcorr.o ewald.o expol.o expolar.o extra.o extra1.o extra2.o \
+ evcorr.o ewald.o expol.o expolar3.o extra.o extra1.o extra2.o \
  extra3.o faces.o fatal.o fft.o fft3d.o fftpack.o field.o fields.o \
  files.o final.o flatten.o fracs.o freeunit.o freeze.o geometry.o \
  getarc.o getint.o getkey.o getmol.o getmol2.o getnumb.o getpdb.o \
@@ -784,7 +784,7 @@ eurey3.o: action.o analyz.o atomid.o atoms.o bound.o energi.o group.o inform.o i
 evcorr.o: atomid.o atoms.o bound.o boxes.o kdsp.o limits.o math.o mutant.o potent.o shunt.o vdw.o vdwpot.o
 ewald.o:
 expol.o:
-expolar.o: atoms.o bound.o cell.o couple.o expol.o mpole.o polgrp.o polpot.o shunt.o
+expolar3.o: atoms.o bound.o cell.o couple.o expol.o mpole.o polgrp.o polpot.o shunt.o
 extra.o: energi.o
 extra1.o: atoms.o deriv.o energi.o
 extra2.o: atoms.o hessn.o

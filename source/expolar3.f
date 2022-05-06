@@ -7,18 +7,18 @@ c     ################################################################
 c
 c     ###############################################################
 c     ##                                                           ##
-c     ##  subroutine expolar  --  ExchPol variable polarizability  ##
+c     ##  subroutine expolar3  --  ExchPol variable polarizability  ##
 c     ##                                                           ##
 c     ###############################################################
 c
 c
-c     "expolar" calculates the variable polarizability due to exchange
+c     "expolar3" calculates the variable polarizability due to exchange
 c     polarization
 c
 c     literature reference:
 c
 c
-      subroutine expolar (polscale,invpolscale)
+      subroutine expolar3 (polscale,invpolscale)
       use atoms
       use bound
       use cell
@@ -37,7 +37,7 @@ c
       real*8 sizi,sizk,sizik
       real*8 alphai,alphak
       real*8 springi,springk
-      real*8 s2
+      real*8 s2,ds2
       real*8 p33i, p33k
       real*8 kS2i(3,3)
       real*8 kS2k(3,3)
@@ -140,7 +140,7 @@ c
                sizk = prepep(kk)
                alphak = dmppep(kk)
                sizik = sizi*sizk
-               call dampep (r,sizik,alphai,alphak,s2)
+               call dampep (r,sizik,alphai,alphak,s2,ds2)
                p33i = springi*s2*pscale(k)
                p33k = springk*s2*pscale(k)
                call exrotate(i,k,p33i,p33k,kS2i,kS2k)
@@ -288,7 +288,7 @@ c
          ak(2,3) = -ak(2,3)
          ak(3,3) = -ak(3,3)
 c
-c     apply R from left and R^T from right to rotate kS2 matrix
+c     apply R^T from left and R from right to rotate kS2 matrix
 c
          do j = 1, 3
             do l = 1, 3
