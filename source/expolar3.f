@@ -257,43 +257,47 @@ c
          dy = yk - yi
          dz = zk - zi
          r = sqrt(dx*dx + dy*dy + dz*dz)
-         ai(1,3) = dx / r
-         ai(2,3) = dy / r
+         ai(3,1) = dx / r
+         ai(3,2) = dy / r
          ai(3,3) = dz / r
          dx = 1.0d0
          dy = 0.0d0
          dz = 0.0d0
-         dot = ai(1,3)
+         dot = ai(3,1)
          eps = 0.707d0
          if (abs(dot) .gt. eps) then
             dx = 0.0d0
             dy = 1.0d0
-            dot = ai(2,3)
+            dot = ai(3,2)
          end if
-         dx = dx - dot*ai(1,3)
-         dy = dy - dot*ai(2,3)
+         dx = dx - dot*ai(3,1)
+         dy = dy - dot*ai(3,2)
          dz = dz - dot*ai(3,3)
          r = sqrt(dx*dx + dy*dy + dz*dz)
+c
+c     ai is the rotation matrix R that takes a vector in
+c     global frame to local frame
+c
          ai(1,1) = dx / r
-         ai(2,1) = dy / r
-         ai(3,1) = dz / r
-         ai(1,2) = ai(3,1)*ai(2,3) - ai(2,1)*ai(3,3)
-         ai(2,2) = ai(1,1)*ai(3,3) - ai(3,1)*ai(1,3)
-         ai(3,2) = ai(2,1)*ai(1,3) - ai(1,1)*ai(2,3)
+         ai(1,2) = dy / r
+         ai(1,3) = dz / r
+         ai(2,1) = ai(1,3)*ai(3,2) - ai(1,2)*ai(3,3)
+         ai(2,2) = ai(1,1)*ai(3,3) - ai(1,3)*ai(3,1)
+         ai(2,3) = ai(1,2)*ai(3,1) - ai(1,1)*ai(3,2)
          ak = ai
-         ak(1,2) = -ak(1,2)
+         ak(2,1) = -ak(2,1)
          ak(2,2) = -ak(2,2)
-         ak(3,2) = -ak(3,2)
-         ak(1,3) = -ak(1,3)
          ak(2,3) = -ak(2,3)
+         ak(3,1) = -ak(3,1)
+         ak(3,2) = -ak(3,2)
          ak(3,3) = -ak(3,3)
 c
 c     apply R^T from left and R from right to rotate kS2 matrix
 c
          do j = 1, 3
             do l = 1, 3
-               kS2i(j,l) = p33i*ai(j,3)*ai(l,3)
-               kS2k(j,l) = p33k*ak(j,3)*ak(l,3)
+               kS2i(j,l) = p33i*ai(3,j)*ai(3,l)
+               kS2k(j,l) = p33k*ak(3,j)*ak(3,l)
             end do
          end do
       else

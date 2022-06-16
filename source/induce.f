@@ -527,7 +527,6 @@ c
             epsold = eps
             eps = max(epsd,epsp)
             eps = debye * sqrt(eps/dble(npolar))
-            debug = .true.
             if (debug) then
                if (iter .eq. 1) then
                   write (iout,20)
