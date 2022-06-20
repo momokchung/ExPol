@@ -917,11 +917,11 @@ c
 c     literature reference:
 c
 c
-      subroutine dampep (r,preik,alphai,alphak,s2)
+      subroutine dampep (r,preik,alphai,alphak,s2,ds2)
       use expol
       implicit none
       real*8 r
-      real*8 s,s2
+      real*8 s,s2,ds2
       real*8 alphai,alphak,alphaik
       real*8 dmpi2,dmpk2
       real*8 dmpi22,dmpk22
@@ -940,6 +940,7 @@ c
          expik = exp(-dampik)
          s =(1+dampik+dampik2/3.0d0)*expik
          s2 = s*s
+         ds2 = s * (-alphaik/3.0d0)*(dampik+dampik2)*expik
       else if (scrtyp .eq. 'S2 ') then
 c
 c     compute tolerance value for damping exponents
@@ -954,7 +955,8 @@ c
             dampi = dmpi2 * r
             dampi2 = dampi * dampi
             expi = exp(-dampi)
-            s =(1+dampi+dampi2/3.0d0)*expi
+            s = (1+dampi+dampi2/3.0d0)*expi
+            ds2 = s * (-alphai/3.0d0)*(dampi+dampi2)*expi
 c
 c     treat the case where alpha damping exponents are unequal
 c
@@ -971,12 +973,17 @@ c
             pre = sqrt(alphai**3 * alphak**3) / (r * term**3)
             s = pre*(dmpi2*(r*term - 4*dmpk2) * expk
      &            + dmpk2*(r*term + 4*dmpi2) * expi)
+            ds2 = 2.0d0*s*pre*dmpi2*dmpk2 * 
+     &       ((4.0d0/r-(r*term-4.0d0*dmpk2))*expk -
+     &       ((4.0d0/r+(r*term+4.0d0*dmpi2))*expi))
          end if
          s2 = s*s
       else if (scrtyp .eq. 'G  ') then
          alphaik = sqrt(alphai * alphak)
-         s2 = exp(-alphaik/10 * r**2)
+         s2 = exp(-alphaik/10.0d0 * r**2)
+         ds2 = (-alphaik/5.0d0)*r*s2
       end if
-      s2 = s2*preik
+      s2 = preik*s2
+      ds2 = preik*ds2
       return
       end

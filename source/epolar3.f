@@ -25,11 +25,7 @@ c
 c
 c     choose the method for summing over polarization interactions
 c
-      if (use_expol) then
-         pairwise = .false.
-      else
-         pairwise = .true.
-      end if
+      pairwise = .true.
       if (pairwise) then
          if (use_ewald) then
             if (use_mlist) then

@@ -13,7 +13,7 @@ opt := release
 # gfortran / gfortran8 / gfortran-8 / ifort / ifort14 / ifort-14 / etc.
 F77 := gfortran
 # FFTW directory
-fftw := /Users/moseschung/tinker/fftw
+fftw := default__
 
 ###################################################################
 ##  Master Directory Locations; Change as Needed for Local Site  ##
@@ -31,7 +31,7 @@ fftw := /Users/moseschung/tinker/fftw
 ##  APBS_LIB_DIR    Directory with APBS Libraries
 ##  APBS_LIBS       APBS Libraries needed to build Tinker
 
-TINKERDIR := /Users/moseschung/tinker_expol
+TINKERDIR := $(HOME)/tinker
 TINKER_LIBDIR := $(TINKERDIR)/lib
 BINDIR := $(TINKERDIR)/bin
 LINKDIR := /usr/local/bin
@@ -95,7 +95,7 @@ ifeq ($(use_gfortran__), true)
       OPTFLAGS :=
     else
       # debug
-      OPTFLAGS := -Og -fbacktrace -fcheck=bounds -Wunused -Wmaybe-uninitialized
+      OPTFLAGS :=
     endif
     F77FLAGS := -c
     LIBDIR := -L. -L$(TINKER_LIBDIR)/linux
@@ -113,7 +113,7 @@ ifeq ($(use_gfortran__), true)
       OPTFLAGS :=
     else
       # debug
-      OPTFLAGS := -Og -fbacktrace -fcheck=bounds -Wunused -Wmaybe-uninitialized
+      OPTFLAGS :=
     endif
     F77FLAGS := -c
     LIBDIR := -L. -L$(TINKER_LIBDIR)/macos

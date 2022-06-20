@@ -105,7 +105,7 @@ atom         16   16    Br-   "Bromide Ion Br-"             35    79.904    0
 atom         17   17    I-    "Iodide Ion I-"               53   126.904    0
 atom         20   20    Mg+   "Magnesium Ion Mg+"           12    24.305    0
 atom         21   21    Ca+   "Calcium Ion Ca+"             20    40.078    0
-
+atom         22   22    Zn+   "Zinc Ion Zn+"                30    65.380    0
 
       ##################################
       ##                              ##
@@ -242,6 +242,11 @@ multipole    21    0    0              2.000000
                                        0.000000
                                        0.000000   0.000000
                                        0.000000   0.000000   0.000000
+multipole    22    0    0              2.000000
+                                       0.000000   0.000000   0.000000
+                                       0.000000
+                                       0.000000   0.000000
+                                       0.000000   0.000000   0.000000
 
 
       #####################################
@@ -275,13 +280,13 @@ polarize           7        0.157
 polarize           8        0.830
 polarize           9        1.370
 polarize          10        2.360
-polarize          14        2.4669
-polarize	  15	    5.3602
-#polarize          16        7.1688
+polarize          14        2.467
+polarize          15        5.482
 polarize          16        7.268
-polarize          17        10.1184
+polarize          17        10.275
 polarize          20        0.075
 polarize          21        0.490
+polarize          22        0.420
 
 
       ##################################
