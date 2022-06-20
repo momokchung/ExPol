@@ -281,9 +281,7 @@ polarize           8        0.830
 polarize           9        1.370
 polarize          10        2.360
 polarize          14        2.467
-#polarize          15        5.3602
 polarize          15        5.482
-#polarize          16        7.1688
 polarize          16        7.268
 polarize          17        10.275
 polarize          20        0.075
