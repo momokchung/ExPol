@@ -9,7 +9,7 @@
 # source directory
 src := $(PWD)
 # release / debug / profile / etc.
-opt := debug
+opt := release
 # gfortran / gfortran8 / gfortran-8 / ifort / ifort14 / ifort-14 / etc.
 F77 := gfortran
 # FFTW directory

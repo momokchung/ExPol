@@ -538,7 +538,7 @@ c
 c
 c     invert polscale matrix
 c
-!$OMP DO reduction(+:polscale,invpolscale) schedule(guided)
+!$OMP DO schedule(guided)
       do ii = 1, npole
          do j = 1, 3
             do m = 1, 3

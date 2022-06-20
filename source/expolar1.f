@@ -546,10 +546,10 @@ c
 c     OpenMP directives for the major loop structure
 c
 !$OMP PARALLEL default(private)
-!$OMP& shared(npole,ipole,x,y,z,kpep,prepep,dmppep,np11,ip11,n12
+!$OMP& shared(npole,ipole,x,y,z,kpep,prepep,dmppep,np11,ip11,n12,
 !$OMP& i12,n13,i13,n14,i14,n15,i15,p2scale,p3scale,p4scale,p5scale,
 !$OMP& p2iscale,p3iscale,p4iscale,p5iscale,nelst,elst,use_bounds,
-!$OMP& cut2,off2,c0,c1,c2,c3,c4,c5,polarity)
+!$OMP& cut2,off2,c0,c1,c2,c3,c4,c5,polarity,f,uind)
 !$OMP& firstprivate(pscale)
 !$OMP& shared (dep,vir)
 !$OMP DO reduction(+:dep,vir) schedule(guided)
@@ -724,7 +724,8 @@ c
             pscale(i15(j,i)) = 1.0d0
          end do
       end do
-	!$OMP END DO
+!$OMP END DO
+!$OMP END PARALLEL
 c
 c     perform deallocation of some local arrays
 c
