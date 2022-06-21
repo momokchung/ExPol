@@ -61,8 +61,8 @@ c
                   write (iout,20)
    20             format (/,' Additional Exchange Polarization',
      &                       ' Parameters :',
-     &                    //,5x,'Atom Class',15x,'Spring',11x,'Size',
-     &                       8x,'Damp'/)
+     &                    //,5x,'Atom Class',13x,'Spring',11x,'Size',
+     &                       11x,'Damp'/)
                end if
                if (k .le. maxclass) then
                   pepk(k) = kpr
@@ -127,8 +127,8 @@ c
                   write (iout,50)
    50             format (/,' Additional Exchange Polarization Values',
      &                       ' for Specific Atoms :',
-     &                    //,8x,'Atom',17x,'Spring',12x,'Size',
-     &                       8x,'Damp'/)
+     &                    //,8x,'Atom',16x,'Spring',11x,'Size',
+     &                       11x,'Damp'/)
                end if
                if (.not. silent) then
                   write (iout,60)  ia,kpr,ppr,apr

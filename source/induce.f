@@ -220,7 +220,7 @@ c
 c
 c     get invpolscale
 c
-      if (use_expol) call expolar3 (polscale,invpolscale)
+      if (use_expol) call expolar (polscale,invpolscale)
 c
 c     set induced dipoles to polarizability times direct field
 c

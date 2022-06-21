@@ -7,18 +7,18 @@ c     ################################################################
 c
 c     ###############################################################
 c     ##                                                           ##
-c     ##  subroutine expolar3  --  ExchPol variable polarizability  ##
+c     ##  subroutine expolar  --  ExchPol variable polarizability  ##
 c     ##                                                           ##
 c     ###############################################################
 c
 c
-c     "expolar3" calculates the variable polarizability due to exchange
+c     "expolar" calculates the variable polarizability due to exchange
 c     polarization
 c
 c     literature reference:
 c
 c
-      subroutine expolar3 (polscale,invpolscale)
+      subroutine expolar (polscale,invpolscale)
       use limits
       use mpole
       implicit none
@@ -29,9 +29,9 @@ c
 c     choose the method for summing over pairwise interactions
 c
       if (use_mlist) then
-         call expolar3b (polscale,invpolscale)
+         call expolar0b (polscale,invpolscale)
       else
-         call expolar3a (polscale,invpolscale)
+         call expolar0a (polscale,invpolscale)
       end if
       return
       end
@@ -39,16 +39,16 @@ c
 c
 c     ##################################################################
 c     ##                                                              ##
-c     ##  subroutine expolar3a  --  variable polarizability via loop  ##
+c     ##  subroutine expolar0a  --  variable polarizability via loop  ##
 c     ##                                                              ##
 c     ##################################################################
 c
 c
-c     "expolar3a" calculates the variable polarizability due to exchange
+c     "expolar0a" calculates the variable polarizability due to exchange
 c     polarization using a double loop
 c
 c
-      subroutine expolar3a (polscale,invpolscale)
+      subroutine expolar0a (polscale,invpolscale)
       use atoms
       use bound
       use cell
@@ -349,16 +349,16 @@ c
 c
 c     ##################################################################
 c     ##                                                              ##
-c     ##  subroutine expolar3b  --  variable polarizability via loop  ##
+c     ##  subroutine expolar0b  --  variable polarizability via loop  ##
 c     ##                                                              ##
 c     ##################################################################
 c
 c
-c     "expolar3b" calculates the variable polarizability due to exchange
+c     "expolar0b" calculates the variable polarizability due to exchange
 c     polarization using a neighbor list
 c
 c
-      subroutine expolar3b (polscale,invpolscale)
+      subroutine expolar0b (polscale,invpolscale)
       use atoms
       use bound
       use couple

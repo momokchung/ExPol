@@ -12,9 +12,9 @@ c     ##                                                              ##
 c     ##################################################################
 c
 c
-c     pepk       exchange polarization spring constant
-c     peppre     exchange polarization constant prefactor
-c     pepdmp     exchange polarization damping alpha
+c     pepk       exch polarization spring constant for each atom type
+c     peppre     exch polarization constant prefactor for each atom type
+c     pepdmp     exch polarization damping alpha for each atom type
 c
 c
       module kexpl

@@ -56,6 +56,7 @@ c
       use kcpen
       use kctrn
       use kdsp
+      use kexpl
       use korbs
       use kpolr
       use krepl
@@ -493,6 +494,12 @@ c
       if (allocated(prsiz))  deallocate (prsiz)
       if (allocated(prdmp))  deallocate (prdmp)
       if (allocated(prele))  deallocate (prele)
+c
+c     deallocation of global arrays from module kexpl
+c
+      if (allocated(pepk))  deallocate (pepk)
+      if (allocated(peppre))  deallocate (peppre)
+      if (allocated(pepdmp))  deallocate (pepdmp)
 c
 c     deallocation of global arrays from module ksolut
 c
