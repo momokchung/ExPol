@@ -91,7 +91,7 @@ c
       allocate (prepep(n))
       allocate (dmppep(n))
 c
-c     assign the repulsion size, alpha and valence parameters 
+c     assign the spring constant, prefactor and alpha parameters
 c
       do i = 1, n
          kpep(i) = 0.0d0

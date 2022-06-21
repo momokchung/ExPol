@@ -7,7 +7,7 @@ c     ################################################################
 c
 c     ##################################################################
 c     ##                                                              ##
-c     ##  module expol  --  exch polarization for current structure   ##        
+c     ##  module expol  --  exch polarization for current structure   ##
 c     ##                                                              ##
 c     ##################################################################
 c

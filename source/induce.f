@@ -230,10 +230,8 @@ c
                udir(j,i) = polarity(i) * field(j,i)
                udirp(j,i) = polarity(i) * fieldp(j,i)
                if (pcgguess) then
-                  do k = 1, 3
-                     uind(j,i) = udir(j,i)
-                     uinp(j,i) = udirp(j,i)
-                  end do
+                  uind(j,i) = udir(j,i)
+                  uinp(j,i) = udirp(j,i)
                end if
             end do
          else if (douind(ipole(i)) .and. use_expol) then
@@ -393,9 +391,9 @@ c
      &                           -uinp(2,i)*expoli(j,2,i)
      &                           -uinp(3,i)*expoli(j,3,i) + fieldp(j,i)
                      else
-	                     rsd(j,i) = (udir(j,i)-uind(j,i))/poli(i)	
-     &                              + field(j,i)	
-                        rsdp(j,i) = (udirp(j,i)-uinp(j,i))/poli(i)	
+	                     rsd(j,i) = (udir(j,i)-uind(j,i))/poli(i)
+     &                              + field(j,i)
+                        rsdp(j,i) = (udirp(j,i)-uinp(j,i))/poli(i)
      &                              + fieldp(j,i)
                      end if
                   else
@@ -480,7 +478,7 @@ c
      &                         + conjp(2,i)*expoli(j,2,i)
      &                         + conjp(3,i)*expoli(j,3,i) - fieldp(j,i)
                      else
-                        vec(j,i) = conj(j,i)/poli(i) - field(j,i)	
+                        vec(j,i) = conj(j,i)/poli(i) - field(j,i)
                         vecp(j,i) = conjp(j,i)/poli(i) - fieldp(j,i)
                      end if
                   end do

@@ -675,7 +675,6 @@ c
      &           //,' Type',14x,'Atom Names',15x,'Distance',
      &              8x,'Energy',/)
       end if
-      print*, 'erepel3 neighbor-list'
 c
 c     OpenMP directives for the major loop structure
 c

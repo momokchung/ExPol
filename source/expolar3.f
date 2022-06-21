@@ -426,7 +426,6 @@ c
       do i = 1, n
          pscale(i) = 1.0d0
       end do
-      print*, 'expolar3 neighbor-list'
 c
 c     OpenMP directives for the major loop structure
 c
@@ -480,7 +479,6 @@ c
 c
 c     evaluate all sites within the cutoff distance
 c
-         print*, nelst(ii)
          do kkk = 1, nelst(ii)
             kk = elst(kkk,ii)
             k = ipole(kk)
