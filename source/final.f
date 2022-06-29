@@ -37,6 +37,7 @@ c
       use dipole
       use disgeo
       use domega
+      use expol
       use faces
       use fft
       use fields
@@ -500,6 +501,7 @@ c
       if (allocated(pepk))  deallocate (pepk)
       if (allocated(peppre))  deallocate (peppre)
       if (allocated(pepdmp))  deallocate (pepdmp)
+      if (allocated(pepl))  deallocate (pepl)
 c
 c     deallocation of global arrays from module ksolut
 c
@@ -815,6 +817,13 @@ c
       if (allocated(sizpr))  deallocate (sizpr)
       if (allocated(dmppr))  deallocate (dmppr)
       if (allocated(elepr))  deallocate (elepr)
+c
+c     deallocation of global arrays from module expol
+c
+      if (allocated(kpep))  deallocate (kpep)
+      if (allocated(prepep))  deallocate (prepep)
+      if (allocated(dmppep))  deallocate (dmppep)
+      if (allocated(lpep))  deallocate (lpep)
 c
 c     deallocation of global arrays from module restrn
 c

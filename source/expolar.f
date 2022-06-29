@@ -77,6 +77,7 @@ c
       real*8, allocatable :: pscale(:)
       real*8 polscale(3,3,npole)
       real*8 invpolscale(3,3,npole)
+      logical epli,eplk
       character*6 mode
 c
 c
@@ -125,6 +126,7 @@ c
          springi = kpep(ii)
          sizi = prepep(ii)
          alphai = dmppep(ii)
+         epli = lpep(ii)
 c
 c     set exclusion coefficients for connected atoms
 c
@@ -161,38 +163,49 @@ c     evaluate all sites within the cutoff distance
 c
          do kk = ii+1, npole
             k = ipole(kk)
-            xr = x(k) - x(i)
-            yr = y(k) - y(i)
-            zr = z(k) - z(i)
-            if (use_bounds)  call image (xr,yr,zr)
-            r2 = xr*xr + yr*yr + zr*zr
-            if (r2 .le. off2) then
-               r = sqrt(r2)
-               springk = kpep(kk)
-               sizk = prepep(kk)
-               alphak = dmppep(kk)
-               sizik = sizi*sizk
-               call dampep (r,sizik,alphai,alphak,s2,ds2)
+            eplk = lpep(kk)
+            if (epli.or.eplk) then
+               xr = x(k) - x(i)
+               yr = y(k) - y(i)
+               zr = z(k) - z(i)
+               if (use_bounds)  call image (xr,yr,zr)
+               r2 = xr*xr + yr*yr + zr*zr
+               if (r2 .le. off2) then
+                  r = sqrt(r2)
+                  springk = kpep(kk)
+                  sizk = prepep(kk)
+                  alphak = dmppep(kk)
+                  sizik = sizi*sizk
+                  call dampep (r,sizik,alphai,alphak,s2,ds2)
 c
 c     use energy switching if near the cutoff distance
 c
-               if (r2 .gt. cut2) then
-                  r3 = r2 * r
-                  r4 = r2 * r2
-                  r5 = r2 * r3
-                  taper = c5*r5 + c4*r4 + c3*r3
+                  if (r2 .gt. cut2) then
+                     r3 = r2 * r
+                     r4 = r2 * r2
+                     r5 = r2 * r3
+                     taper = c5*r5 + c4*r4 + c3*r3
      &                          + c2*r2 + c1*r + c0
-                  s2 = s2 * taper
+                     s2 = s2 * taper
+                  end if
+                  p33i = springi*s2*pscale(k)
+                  p33k = springk*s2*pscale(k)
+                  call exrotate(i,k,xr,yr,zr,p33i,p33k,kS2i,kS2k)
+                  if (epli) then
+                     do j = 1, 3
+                        do m = 1, 3
+                           polscale(j,m,ii) = polscale(j,m,ii)+kS2i(j,m)
+                        end do
+                     end do
+                  end if
+                  if (eplk) then
+                     do j = 1, 3
+                        do m = 1, 3
+                           polscale(j,m,kk) = polscale(j,m,kk)+kS2k(j,m)
+                        end do
+                     end do
+                  end if
                end if
-               p33i = springi*s2*pscale(k)
-               p33k = springk*s2*pscale(k)
-               call exrotate(i,k,xr,yr,zr,p33i,p33k,kS2i,kS2k)
-               do j = 1, 3
-                  do m = 1, 3
-                     polscale(j,m,ii) = polscale(j,m,ii) + kS2i(j,m)
-                     polscale(j,m,kk) = polscale(j,m,kk) + kS2k(j,m)
-                  end do
-               end do
             end if
          end do
 c
@@ -224,6 +237,7 @@ c
             springi = kpep(ii)
             sizi = prepep(ii)
             alphai = dmppep(ii)
+            epli = lpep(ii)
 c
 c     set exclusion coefficients for connected atoms
 c
@@ -260,45 +274,58 @@ c     evaluate all sites within the cutoff distance
 c
             do kk = ii, npole
                k = ipole(kk)
-               do jcell = 2, ncell
-                  xr = x(k) - x(i)
-                  yr = y(k) - y(i)
-                  zr = z(k) - z(i)
-                  call imager (xr,yr,zr,jcell)
-                  r2 = xr*xr + yr*yr + zr*zr
-                  if (r2 .le. off2) then
-                     r = sqrt(r2)
-                     springk = kpep(kk)
-                     sizk = prepep(kk)
-                     alphak = dmppep(kk)
-                     sizik = sizi*sizk
-                     call dampep (r,sizik,alphai,alphak,s2,ds2)
+               eplk = lpep(kk)
+               if (epli.or.eplk) then
+                  do jcell = 2, ncell
+                     xr = x(k) - x(i)
+                     yr = y(k) - y(i)
+                     zr = z(k) - z(i)
+                     call imager (xr,yr,zr,jcell)
+                     r2 = xr*xr + yr*yr + zr*zr
+                     if (r2 .le. off2) then
+                        r = sqrt(r2)
+                        springk = kpep(kk)
+                        sizk = prepep(kk)
+                        alphak = dmppep(kk)
+                        sizik = sizi*sizk
+                        call dampep (r,sizik,alphai,alphak,s2,ds2)
 c
 c     use energy switching if near the cutoff distance
 c
-                     if (r2 .gt. cut2) then
-                        r3 = r2 * r
-                        r4 = r2 * r2
-                        r5 = r2 * r3
-                        taper = c5*r5 + c4*r4 + c3*r3
+                        if (r2 .gt. cut2) then
+                           r3 = r2 * r
+                           r4 = r2 * r2
+                           r5 = r2 * r3
+                           taper = c5*r5 + c4*r4 + c3*r3
      &                          + c2*r2 + c1*r + c0
-                        s2 = s2 * taper
-                     end if
+                           s2 = s2 * taper
+                        end if
 c
 c     interaction of an atom with its own image counts half
 c
-                     if (i .eq. k)  s2 = 0.5d0 * s2
-                     p33i = springi*s2*pscale(k)
-                     p33k = springk*s2*pscale(k)
-                     call exrotate(i,k,xr,yr,zr,p33i,p33k,kS2i,kS2k)
-                     do j = 1, 3
-                        do m = 1, 3
-                           polscale(j,m,ii) = polscale(j,m,ii)+kS2i(j,m)
-                           polscale(j,m,kk) = polscale(j,m,kk)+kS2k(j,m)
-                        end do
-                     end do
-                  end if
-               end do
+                        if (i .eq. k)  s2 = 0.5d0 * s2
+                        p33i = springi*s2*pscale(k)
+                        p33k = springk*s2*pscale(k)
+                        call exrotate(i,k,xr,yr,zr,p33i,p33k,kS2i,kS2k)
+                        if (epli) then
+                           do j = 1, 3
+                              do m = 1, 3
+                                 polscale(j,m,ii) = polscale(j,m,ii)
+     &                                            + kS2i(j,m)
+                              end do
+                           end do
+                        end if
+                        if (eplk) then
+                           do j = 1, 3
+                              do m = 1, 3
+                                 polscale(j,m,kk) = polscale(j,m,kk)
+     &                                            + kS2k(j,m)
+                              end do
+                           end do
+                        end if
+                     end if
+                  end do
+               end if
             end do
 c
 c     reset exclusion coefficients for connected atoms
@@ -386,6 +413,7 @@ c
       real*8, allocatable :: pscale(:)
       real*8 polscale(3,3,npole)
       real*8 invpolscale(3,3,npole)
+      logical epli,eplk
       character*6 mode
 c
 c
@@ -430,7 +458,7 @@ c
 c     OpenMP directives for the major loop structure
 c
 !$OMP PARALLEL default(private)
-!$OMP& shared(npole,ipole,x,y,z,kpep,prepep,dmppep,np11,ip11,n12,
+!$OMP& shared(npole,ipole,x,y,z,kpep,prepep,dmppep,lpep,np11,ip11,n12,
 !$OMP& i12,n13,i13,n14,i14,n15,i15,p2scale,p3scale,p4scale,p5scale,
 !$OMP& p2iscale,p3iscale,p4iscale,p5iscale,nelst,elst,use_bounds,
 !$OMP& cut2,off2,c0,c1,c2,c3,c4,c5)
@@ -445,6 +473,7 @@ c
          springi = kpep(ii)
          sizi = prepep(ii)
          alphai = dmppep(ii)
+         epli = lpep(ii)
 c
 c     set exclusion coefficients for connected atoms
 c
@@ -482,38 +511,49 @@ c
          do kkk = 1, nelst(ii)
             kk = elst(kkk,ii)
             k = ipole(kk)
-            xr = x(k) - x(i)
-            yr = y(k) - y(i)
-            zr = z(k) - z(i)
-            if (use_bounds)  call image (xr,yr,zr)
-            r2 = xr*xr + yr*yr + zr*zr
-            if (r2 .le. off2) then
-               r = sqrt(r2)
-               springk = kpep(kk)
-               sizk = prepep(kk)
-               alphak = dmppep(kk)
-               sizik = sizi*sizk
-               call dampep (r,sizik,alphai,alphak,s2,ds2)
+            eplk = lpep(kk)
+            if (epli.or.eplk) then
+               xr = x(k) - x(i)
+               yr = y(k) - y(i)
+               zr = z(k) - z(i)
+               if (use_bounds)  call image (xr,yr,zr)
+               r2 = xr*xr + yr*yr + zr*zr
+               if (r2 .le. off2) then
+                  r = sqrt(r2)
+                  springk = kpep(kk)
+                  sizk = prepep(kk)
+                  alphak = dmppep(kk)
+                  sizik = sizi*sizk
+                  call dampep (r,sizik,alphai,alphak,s2,ds2)
 c
 c     use energy switching if near the cutoff distance
 c
-               if (r2 .gt. cut2) then
-                  r3 = r2 * r
-                  r4 = r2 * r2
-                  r5 = r2 * r3
-                  taper = c5*r5 + c4*r4 + c3*r3
+                  if (r2 .gt. cut2) then
+                     r3 = r2 * r
+                     r4 = r2 * r2
+                     r5 = r2 * r3
+                     taper = c5*r5 + c4*r4 + c3*r3
      &                          + c2*r2 + c1*r + c0
-                  s2 = s2 * taper
+                     s2 = s2 * taper
+                  end if
+                  p33i = springi*s2*pscale(k)
+                  p33k = springk*s2*pscale(k)
+                  call exrotate(i,k,xr,yr,zr,p33i,p33k,kS2i,kS2k)
+                  if (epli) then
+                     do j = 1, 3
+                        do m = 1, 3
+                           polscale(j,m,ii) = polscale(j,m,ii)+kS2i(j,m)
+                        end do
+                     end do
+                  end if
+                  if (eplk) then
+                     do j = 1, 3
+                        do m = 1, 3
+                           polscale(j,m,kk) = polscale(j,m,kk)+kS2k(j,m)
+                        end do
+                     end do
+                  end if
                end if
-               p33i = springi*s2*pscale(k)
-               p33k = springk*s2*pscale(k)
-               call exrotate(i,k,xr,yr,zr,p33i,p33k,kS2i,kS2k)
-               do j = 1, 3
-                  do m = 1, 3
-                     polscale(j,m,ii) = polscale(j,m,ii) + kS2i(j,m)
-                     polscale(j,m,kk) = polscale(j,m,kk) + kS2k(j,m)
-                  end do
-               end do
             end if
          end do
 c
@@ -566,11 +606,11 @@ c
       end
 c
 c
-c     ############################################################
-c     ##                                                        ##
-c     ##  subroutine exrotate  --  rotate polarizability matrix ##
-c     ##                                                        ##
-c     ############################################################
+c     #############################################################
+c     ##                                                         ##
+c     ##  subroutine exrotate  --  rotate polarizability matrix  ##
+c     ##                                                         ##
+c     #############################################################
 c
 c
 c     "exrotate" rotates and inverts the variable polarizability tensor

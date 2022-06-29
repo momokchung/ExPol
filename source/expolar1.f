@@ -89,6 +89,7 @@ c
       real*8 ai(3,3)
       real*8 ak(3,3)
       real*8, allocatable :: pscale(:)
+      logical epli,eplk
       character*6 mode
 c
 c
@@ -115,6 +116,7 @@ c
          springi = kpep(ii)/polarity(ii)
          sizi = prepep(ii)
          alphai = dmppep(ii)
+         epli = lpep(ii)
 c
 c     set exclusion coefficients for connected atoms
 c
@@ -151,114 +153,123 @@ c     evaluate all sites within the cutoff distance
 c
          do kk = ii+1, npole
             k = ipole(kk)
-            xr = x(k) - x(i)
-            yr = y(k) - y(i)
-            zr = z(k) - z(i)
-            if (use_bounds)  call image (xr,yr,zr)
-            r2 = xr*xr + yr*yr + zr*zr
-            if (r2 .le. off2) then
-               r = sqrt(r2)
-               springk = kpep(kk)/polarity(kk)
-               sizk = prepep(kk)
-               alphak = dmppep(kk)
-               sizik = sizi*sizk
-               call dampep (r,sizik,alphai,alphak,s2,ds2)
+            eplk = lpep(kk)
+            if (epli.or.eplk) then
+               xr = x(k) - x(i)
+               yr = y(k) - y(i)
+               zr = z(k) - z(i)
+               if (use_bounds)  call image (xr,yr,zr)
+               r2 = xr*xr + yr*yr + zr*zr
+               if (r2 .le. off2) then
+                  r = sqrt(r2)
+                  springk = kpep(kk)/polarity(kk)
+                  sizk = prepep(kk)
+                  alphak = dmppep(kk)
+                  sizik = sizi*sizk
+                  call dampep (r,sizik,alphai,alphak,s2,ds2)
 c
 c     use energy switching if near the cutoff distance
 c
-               if (r2 .gt. cut2) then
-                  r3 = r2 * r
-                  r4 = r2 * r2
-                  r5 = r2 * r3
-                  taper = c5*r5 + c4*r4 + c3*r3
+                  if (r2 .gt. cut2) then
+                     r3 = r2 * r
+                     r4 = r2 * r2
+                     r5 = r2 * r3
+                     taper = c5*r5 + c4*r4 + c3*r3
      &                          + c2*r2 + c1*r + c0
-                  dtaper = 5.0d0*c5*r4 + 4.0d0*c4*r3
+                     dtaper = 5.0d0*c5*r4 + 4.0d0*c4*r3
      &                           + 3.0d0*c3*r2 + 2.0d0*c2*r + c1
-                  ds2 = ds2*taper + s2*dtaper
-                  s2 = s2 * taper
-               end if
-               s2i = springi*s2*pscale(k)
-               s2k = springk*s2*pscale(k)
-               ds2i = springi*ds2*pscale(k)
-               ds2k = springk*ds2*pscale(k)
-               call exrotmat(i,k,xr,yr,zr,ai,ak)
-               uixl = 0.0d0
-               ukxl = 0.0d0
-               uiyl = 0.0d0
-               ukyl = 0.0d0
-               uizl = 0.0d0
-               ukzl = 0.0d0
-               do j = 1, 3
-                  uixl = uixl + uind(j,ii)*ai(1,j)
-                  ukxl = ukxl - uind(j,kk)*ak(1,j)
-                  uiyl = uiyl + uind(j,ii)*ai(2,j)
-                  ukyl = ukyl - uind(j,kk)*ak(2,j)
-                  uizl = uizl + uind(j,ii)*ai(3,j)
-                  ukzl = ukzl - uind(j,kk)*ak(3,j)
-               end do
-               frcil(3) = uizl**2 * ds2i
-               frckl(3) = ukzl**2 * ds2k
+                     ds2 = ds2*taper + s2*dtaper
+                     s2 = s2 * taper
+                  end if
+                  s2i = springi*s2*pscale(k)
+                  s2k = springk*s2*pscale(k)
+                  ds2i = springi*ds2*pscale(k)
+                  ds2k = springk*ds2*pscale(k)
+                  call exrotmat(i,k,xr,yr,zr,ai,ak)
+                  uixl = 0.0d0
+                  ukxl = 0.0d0
+                  uiyl = 0.0d0
+                  ukyl = 0.0d0
+                  uizl = 0.0d0
+                  ukzl = 0.0d0
+                  do j = 1, 3
+                     uixl = uixl + uind(j,ii)*ai(1,j)
+                     ukxl = ukxl - uind(j,kk)*ak(1,j)
+                     uiyl = uiyl + uind(j,ii)*ai(2,j)
+                     ukyl = ukyl - uind(j,kk)*ak(2,j)
+                     uizl = uizl + uind(j,ii)*ai(3,j)
+                     ukzl = ukzl - uind(j,kk)*ak(3,j)
+                  end do
+                  frcil(3) = uizl**2 * ds2i
+                  frckl(3) = ukzl**2 * ds2k
 c
 c     compute torque in local frame
 c
-               tqxil =  2.0d0 * uiyl * uizl * s2i
-               tqyil = -2.0d0 * uixl * uizl * s2i
-               tqxkl =  2.0d0 * ukyl * ukzl * s2k
-               tqykl = -2.0d0 * ukxl * ukzl * s2k
+                  tqxil =  2.0d0 * uiyl * uizl * s2i
+                  tqyil = -2.0d0 * uixl * uizl * s2i
+                  tqxkl =  2.0d0 * ukyl * ukzl * s2k
+                  tqykl = -2.0d0 * ukxl * ukzl * s2k
 c
 c     convert torque to forces
 c
-               frcil(1) = -tqyil / r
-               frcil(2) = tqxil / r
-               frckl(1) = -tqykl / r
-               frckl(2) = tqxkl / r
+                  frcil(1) = -tqyil / r
+                  frcil(2) = tqxil / r
+                  frckl(1) = -tqykl / r
+                  frckl(2) = tqxkl / r
 c
 c     rotate force to global frame
 c
-               frcxi = 0.0d0
-               frcyi = 0.0d0
-               frczi = 0.0d0
-               frcxk = 0.0d0
-               frcyk = 0.0d0
-               frczk = 0.0d0
-               do j = 1, 3
-                  frcxi = frcxi + ai(j,1)*frcil(j)
-                  frcyi = frcyi + ai(j,2)*frcil(j)
-                  frczi = frczi + ai(j,3)*frcil(j)
-                  frcxk = frcxk + ak(j,1)*frckl(j)
-                  frcyk = frcyk + ak(j,2)*frckl(j)
-                  frczk = frczk + ak(j,3)*frckl(j)
-               end do
-               frcx = f*(frcxk-frcxi)
-               frcy = f*(frcyk-frcyi)
-               frcz = f*(frczk-frczi)
+                  frcxi = 0.0d0
+                  frcyi = 0.0d0
+                  frczi = 0.0d0
+                  frcxk = 0.0d0
+                  frcyk = 0.0d0
+                  frczk = 0.0d0
+                  if (epli) then
+                     do j = 1, 3
+                        frcxi = frcxi + ai(j,1)*frcil(j)
+                        frcyi = frcyi + ai(j,2)*frcil(j)
+                        frczi = frczi + ai(j,3)*frcil(j)
+                     end do
+                  end if
+                  if (eplk) then
+                     do j = 1, 3
+                        frcxk = frcxk + ak(j,1)*frckl(j)
+                        frcyk = frcyk + ak(j,2)*frckl(j)
+                        frczk = frczk + ak(j,3)*frckl(j)
+                     end do
+                  end if
+                  frcx = f*(frcxk-frcxi)
+                  frcy = f*(frcyk-frcyi)
+                  frcz = f*(frczk-frczi)
 c
 c     increment force-based gradient on the interaction sites
 c
-               dep(1,i) = dep(1,i) + frcx
-               dep(2,i) = dep(2,i) + frcy
-               dep(3,i) = dep(3,i) + frcz
-               dep(1,k) = dep(1,k) - frcx
-               dep(2,k) = dep(2,k) - frcy
-               dep(3,k) = dep(3,k) - frcz
+                  dep(1,i) = dep(1,i) + frcx
+                  dep(2,i) = dep(2,i) + frcy
+                  dep(3,i) = dep(3,i) + frcz
+                  dep(1,k) = dep(1,k) - frcx
+                  dep(2,k) = dep(2,k) - frcy
+                  dep(3,k) = dep(3,k) - frcz
 c
 c     increment the virial due to pairwise Cartesian forces
 c
-               vxx = -xr * frcx
-               vxy = -0.5d0 * (yr*frcx+xr*frcy)
-               vxz = -0.5d0 * (zr*frcx+xr*frcz)
-               vyy = -yr * frcy
-               vyz = -0.5d0 * (zr*frcy+yr*frcz)
-               vzz = -zr * frcz
-               vir(1,1) = vir(1,1) + vxx
-               vir(2,1) = vir(2,1) + vxy
-               vir(3,1) = vir(3,1) + vxz
-               vir(1,2) = vir(1,2) + vxy
-               vir(2,2) = vir(2,2) + vyy
-               vir(3,2) = vir(3,2) + vyz
-               vir(1,3) = vir(1,3) + vxz
-               vir(2,3) = vir(2,3) + vyz
-               vir(3,3) = vir(3,3) + vzz
+                  vxx = -xr * frcx
+                  vxy = -0.5d0 * (yr*frcx+xr*frcy)
+                  vxz = -0.5d0 * (zr*frcx+xr*frcz)
+                  vyy = -yr * frcy
+                  vyz = -0.5d0 * (zr*frcy+yr*frcz)
+                  vzz = -zr * frcz
+                  vir(1,1) = vir(1,1) + vxx
+                  vir(2,1) = vir(2,1) + vxy
+                  vir(3,1) = vir(3,1) + vxz
+                  vir(1,2) = vir(1,2) + vxy
+                  vir(2,2) = vir(2,2) + vyy
+                  vir(3,2) = vir(3,2) + vyz
+                  vir(1,3) = vir(1,3) + vxz
+                  vir(2,3) = vir(2,3) + vyz
+                  vir(3,3) = vir(3,3) + vzz
+               end if
             end if
          end do
 c
@@ -290,6 +301,7 @@ c
             springi = kpep(ii)/polarity(ii)
             sizi = prepep(ii)
             alphai = dmppep(ii)
+            epli = lpep(ii)
 c
 c     set exclusion coefficients for connected atoms
 c
@@ -326,124 +338,133 @@ c     evaluate all sites within the cutoff distance
 c
             do kk = ii, npole
                k = ipole(kk)
-               do jcell = 2, ncell
-                  xr = x(k) - x(i)
-                  yr = y(k) - y(i)
-                  zr = z(k) - z(i)
-                  call imager (xr,yr,zr,jcell)
-                  r2 = xr*xr + yr*yr + zr*zr
-                  if (r2 .le. off2) then
-                     r = sqrt(r2)
-                     springk = kpep(kk)/polarity(kk)
-                     sizk = prepep(kk)
-                     alphak = dmppep(kk)
-                     sizik = sizi*sizk
-                     call dampep (r,sizik,alphai,alphak,s2,ds2)
+               eplk = lpep(kk)
+               if (epli.or.eplk) then
+                  do jcell = 2, ncell
+                     xr = x(k) - x(i)
+                     yr = y(k) - y(i)
+                     zr = z(k) - z(i)
+                     call imager (xr,yr,zr,jcell)
+                     r2 = xr*xr + yr*yr + zr*zr
+                     if (r2 .le. off2) then
+                        r = sqrt(r2)
+                        springk = kpep(kk)/polarity(kk)
+                        sizk = prepep(kk)
+                        alphak = dmppep(kk)
+                        sizik = sizi*sizk
+                        call dampep (r,sizik,alphai,alphak,s2,ds2)
 c
 c     use energy switching if near the cutoff distance
 c
-                     if (r2 .gt. cut2) then
-                        r3 = r2 * r
-                        r4 = r2 * r2
-                        r5 = r2 * r3
-                        taper = c5*r5 + c4*r4 + c3*r3
+                        if (r2 .gt. cut2) then
+                           r3 = r2 * r
+                           r4 = r2 * r2
+                           r5 = r2 * r3
+                           taper = c5*r5 + c4*r4 + c3*r3
      &                          + c2*r2 + c1*r + c0
-                        dtaper = 5.0d0*c5*r4 + 4.0d0*c4*r3
+                           dtaper = 5.0d0*c5*r4 + 4.0d0*c4*r3
      &                           + 3.0d0*c3*r2 + 2.0d0*c2*r + c1
-                        ds2 = ds2*taper + s2*dtaper
-                        s2 = s2 * taper
-                     end if
+                           ds2 = ds2*taper + s2*dtaper
+                           s2 = s2 * taper
+                        end if
 c
 c     interaction of an atom with its own image counts half
 c
-                     if (i .eq. k) then
-                        s2 = 0.5d0 * s2
-                        ds2 = 0.5d0 * ds2
-                     end if
-                     s2i = springi*s2*pscale(k)
-                     s2k = springk*s2*pscale(k)
-                     ds2i = springi*ds2*pscale(k)
-                     ds2k = springk*ds2*pscale(k)
-                     call exrotmat(i,k,xr,yr,zr,ai,ak)
-                     uixl = 0.0d0
-                     ukxl = 0.0d0
-                     uiyl = 0.0d0
-                     ukyl = 0.0d0
-                     uizl = 0.0d0
-                     ukzl = 0.0d0
-                     do j = 1, 3
-                        uixl = uixl + uind(j,ii)*ai(1,j)
-                        ukxl = ukxl - uind(j,kk)*ak(1,j)
-                        uiyl = uiyl + uind(j,ii)*ai(2,j)
-                        ukyl = ukyl - uind(j,kk)*ak(2,j)
-                        uizl = uizl + uind(j,ii)*ai(3,j)
-                        ukzl = ukzl - uind(j,kk)*ak(3,j)
-                     end do
-                     frcil(3) = uizl**2 * ds2i
-                     frckl(3) = ukzl**2 * ds2k
+                        if (i .eq. k) then
+                           s2 = 0.5d0 * s2
+                           ds2 = 0.5d0 * ds2
+                        end if
+                        s2i = springi*s2*pscale(k)
+                        s2k = springk*s2*pscale(k)
+                        ds2i = springi*ds2*pscale(k)
+                        ds2k = springk*ds2*pscale(k)
+                        call exrotmat(i,k,xr,yr,zr,ai,ak)
+                        uixl = 0.0d0
+                        ukxl = 0.0d0
+                        uiyl = 0.0d0
+                        ukyl = 0.0d0
+                        uizl = 0.0d0
+                        ukzl = 0.0d0
+                        do j = 1, 3
+                           uixl = uixl + uind(j,ii)*ai(1,j)
+                           ukxl = ukxl - uind(j,kk)*ak(1,j)
+                           uiyl = uiyl + uind(j,ii)*ai(2,j)
+                           ukyl = ukyl - uind(j,kk)*ak(2,j)
+                           uizl = uizl + uind(j,ii)*ai(3,j)
+                           ukzl = ukzl - uind(j,kk)*ak(3,j)
+                        end do
+                        frcil(3) = uizl**2 * ds2i
+                        frckl(3) = ukzl**2 * ds2k
 c
 c     compute torque in local frame
 c
-                     tqxil =  2.0d0 * uiyl * uizl * s2i
-                     tqyil = -2.0d0 * uixl * uizl * s2i
-                     tqxkl =  2.0d0 * ukyl * ukzl * s2k
-                     tqykl = -2.0d0 * ukxl * ukzl * s2k
+                        tqxil =  2.0d0 * uiyl * uizl * s2i
+                        tqyil = -2.0d0 * uixl * uizl * s2i
+                        tqxkl =  2.0d0 * ukyl * ukzl * s2k
+                        tqykl = -2.0d0 * ukxl * ukzl * s2k
 c
 c     convert torque to forces
 c
-                     frcil(1) = -tqyil / r
-                     frcil(2) = tqxil / r
-                     frckl(1) = -tqykl / r
-                     frckl(2) = tqxkl / r
+                        frcil(1) = -tqyil / r
+                        frcil(2) = tqxil / r
+                        frckl(1) = -tqykl / r
+                        frckl(2) = tqxkl / r
 c
 c     rotate force to global frame
 c
-                     frcxi = 0.0d0
-                     frcyi = 0.0d0
-                     frczi = 0.0d0
-                     frcxk = 0.0d0
-                     frcyk = 0.0d0
-                     frczk = 0.0d0
-                     do j = 1, 3
-                        frcxi = frcxi + ai(j,1)*frcil(j)
-                        frcyi = frcyi + ai(j,2)*frcil(j)
-                        frczi = frczi + ai(j,3)*frcil(j)
-                        frcxk = frcxk + ak(j,1)*frckl(j)
-                        frcyk = frcyk + ak(j,2)*frckl(j)
-                        frczk = frczk + ak(j,3)*frckl(j)
-                     end do
-                     frcx = f*(frcxk-frcxi)
-                     frcy = f*(frcyk-frcyi)
-                     frcz = f*(frczk-frczi)
+                        frcxi = 0.0d0
+                        frcyi = 0.0d0
+                        frczi = 0.0d0
+                        frcxk = 0.0d0
+                        frcyk = 0.0d0
+                        frczk = 0.0d0
+                        if (epli) then
+                           do j = 1, 3
+                              frcxi = frcxi + ai(j,1)*frcil(j)
+                              frcyi = frcyi + ai(j,2)*frcil(j)
+                              frczi = frczi + ai(j,3)*frcil(j)
+                           end do
+                        end if
+                        if (eplk) then
+                           do j = 1, 3
+                              frcxk = frcxk + ak(j,1)*frckl(j)
+                              frcyk = frcyk + ak(j,2)*frckl(j)
+                              frczk = frczk + ak(j,3)*frckl(j)
+                           end do
+                        end if
+                        frcx = f*(frcxk-frcxi)
+                        frcy = f*(frcyk-frcyi)
+                        frcz = f*(frczk-frczi)
 c
 c     increment force-based gradient on the interaction sites
 c
-                     dep(1,i) = dep(1,i) + frcx
-                     dep(2,i) = dep(2,i) + frcy
-                     dep(3,i) = dep(3,i) + frcz
-                     dep(1,k) = dep(1,k) - frcx
-                     dep(2,k) = dep(2,k) - frcy
-                     dep(3,k) = dep(3,k) - frcz
+                        dep(1,i) = dep(1,i) + frcx
+                        dep(2,i) = dep(2,i) + frcy
+                        dep(3,i) = dep(3,i) + frcz
+                        dep(1,k) = dep(1,k) - frcx
+                        dep(2,k) = dep(2,k) - frcy
+                        dep(3,k) = dep(3,k) - frcz
 c
 c     increment the virial due to pairwise Cartesian forces
 c
-                     vxx = -xr * frcx
-                     vxy = -0.5d0 * (yr*frcx+xr*frcy)
-                     vxz = -0.5d0 * (zr*frcx+xr*frcz)
-                     vyy = -yr * frcy
-                     vyz = -0.5d0 * (zr*frcy+yr*frcz)
-                     vzz = -zr * frcz
-                     vir(1,1) = vir(1,1) + vxx
-                     vir(2,1) = vir(2,1) + vxy
-                     vir(3,1) = vir(3,1) + vxz
-                     vir(1,2) = vir(1,2) + vxy
-                     vir(2,2) = vir(2,2) + vyy
-                     vir(3,2) = vir(3,2) + vyz
-                     vir(1,3) = vir(1,3) + vxz
-                     vir(2,3) = vir(2,3) + vyz
-                     vir(3,3) = vir(3,3) + vzz
-                  end if
-               end do
+                        vxx = -xr * frcx
+                        vxy = -0.5d0 * (yr*frcx+xr*frcy)
+                        vxz = -0.5d0 * (zr*frcx+xr*frcz)
+                        vyy = -yr * frcy
+                        vyz = -0.5d0 * (zr*frcy+yr*frcz)
+                        vzz = -zr * frcz
+                        vir(1,1) = vir(1,1) + vxx
+                        vir(2,1) = vir(2,1) + vxy
+                        vir(3,1) = vir(3,1) + vxz
+                        vir(1,2) = vir(1,2) + vxy
+                        vir(2,2) = vir(2,2) + vyy
+                        vir(3,2) = vir(3,2) + vyz
+                        vir(1,3) = vir(1,3) + vxz
+                        vir(2,3) = vir(2,3) + vyz
+                        vir(3,3) = vir(3,3) + vzz
+                     end if
+                  end do
+               end if
             end do
 c
 c     reset exclusion coefficients for connected atoms
@@ -524,6 +545,7 @@ c
       real*8 ai(3,3)
       real*8 ak(3,3)
       real*8, allocatable :: pscale(:)
+      logical epli,eplk
       character*6 mode
 c
 c
@@ -546,7 +568,7 @@ c
 c     OpenMP directives for the major loop structure
 c
 !$OMP PARALLEL default(private)
-!$OMP& shared(npole,ipole,x,y,z,kpep,prepep,dmppep,np11,ip11,n12,
+!$OMP& shared(npole,ipole,x,y,z,kpep,prepep,dmppep,lpep,np11,ip11,n12,
 !$OMP& i12,n13,i13,n14,i14,n15,i15,p2scale,p3scale,p4scale,p5scale,
 !$OMP& p2iscale,p3iscale,p4iscale,p5iscale,nelst,elst,use_bounds,
 !$OMP& cut2,off2,c0,c1,c2,c3,c4,c5,polarity,f,uind)
@@ -561,6 +583,7 @@ c
          springi = kpep(ii)/polarity(ii)
          sizi = prepep(ii)
          alphai = dmppep(ii)
+         epli = lpep(ii)
 c
 c     set exclusion coefficients for connected atoms
 c
@@ -598,114 +621,123 @@ c
          do kkk = 1, nelst(ii)
             kk = elst(kkk,ii)
             k = ipole(kk)
-            xr = x(k) - x(i)
-            yr = y(k) - y(i)
-            zr = z(k) - z(i)
-            if (use_bounds)  call image (xr,yr,zr)
-            r2 = xr*xr + yr*yr + zr*zr
-            if (r2 .le. off2) then
-               r = sqrt(r2)
-               springk = kpep(kk)/polarity(kk)
-               sizk = prepep(kk)
-               alphak = dmppep(kk)
-               sizik = sizi*sizk
-               call dampep (r,sizik,alphai,alphak,s2,ds2)
+            eplk = lpep(kk)
+            if (epli.or.eplk) then
+               xr = x(k) - x(i)
+               yr = y(k) - y(i)
+               zr = z(k) - z(i)
+               if (use_bounds)  call image (xr,yr,zr)
+               r2 = xr*xr + yr*yr + zr*zr
+               if (r2 .le. off2) then
+                  r = sqrt(r2)
+                  springk = kpep(kk)/polarity(kk)
+                  sizk = prepep(kk)
+                  alphak = dmppep(kk)
+                  sizik = sizi*sizk
+                  call dampep (r,sizik,alphai,alphak,s2,ds2)
 c
 c     use energy switching if near the cutoff distance
 c
-               if (r2 .gt. cut2) then
-                  r3 = r2 * r
-                  r4 = r2 * r2
-                  r5 = r2 * r3
-                  taper = c5*r5 + c4*r4 + c3*r3
+                  if (r2 .gt. cut2) then
+                     r3 = r2 * r
+                     r4 = r2 * r2
+                     r5 = r2 * r3
+                     taper = c5*r5 + c4*r4 + c3*r3
      &                          + c2*r2 + c1*r + c0
-                  dtaper = 5.0d0*c5*r4 + 4.0d0*c4*r3
+                     dtaper = 5.0d0*c5*r4 + 4.0d0*c4*r3
      &                           + 3.0d0*c3*r2 + 2.0d0*c2*r + c1
-                  ds2 = ds2*taper + s2*dtaper
-                  s2 = s2 * taper
-               end if
-               s2i = springi*s2*pscale(k)
-               s2k = springk*s2*pscale(k)
-               ds2i = springi*ds2*pscale(k)
-               ds2k = springk*ds2*pscale(k)
-               call exrotmat(i,k,xr,yr,zr,ai,ak)
-               uixl = 0.0d0
-               ukxl = 0.0d0
-               uiyl = 0.0d0
-               ukyl = 0.0d0
-               uizl = 0.0d0
-               ukzl = 0.0d0
-               do j = 1, 3
-                  uixl = uixl + uind(j,ii)*ai(1,j)
-                  ukxl = ukxl - uind(j,kk)*ak(1,j)
-                  uiyl = uiyl + uind(j,ii)*ai(2,j)
-                  ukyl = ukyl - uind(j,kk)*ak(2,j)
-                  uizl = uizl + uind(j,ii)*ai(3,j)
-                  ukzl = ukzl - uind(j,kk)*ak(3,j)
-               end do
-               frcil(3) = uizl**2 * ds2i
-               frckl(3) = ukzl**2 * ds2k
+                     ds2 = ds2*taper + s2*dtaper
+                     s2 = s2 * taper
+                  end if
+                  s2i = springi*s2*pscale(k)
+                  s2k = springk*s2*pscale(k)
+                  ds2i = springi*ds2*pscale(k)
+                  ds2k = springk*ds2*pscale(k)
+                  call exrotmat(i,k,xr,yr,zr,ai,ak)
+                  uixl = 0.0d0
+                  ukxl = 0.0d0
+                  uiyl = 0.0d0
+                  ukyl = 0.0d0
+                  uizl = 0.0d0
+                  ukzl = 0.0d0
+                  do j = 1, 3
+                     uixl = uixl + uind(j,ii)*ai(1,j)
+                     ukxl = ukxl - uind(j,kk)*ak(1,j)
+                     uiyl = uiyl + uind(j,ii)*ai(2,j)
+                     ukyl = ukyl - uind(j,kk)*ak(2,j)
+                     uizl = uizl + uind(j,ii)*ai(3,j)
+                     ukzl = ukzl - uind(j,kk)*ak(3,j)
+                  end do
+                  frcil(3) = uizl**2 * ds2i
+                  frckl(3) = ukzl**2 * ds2k
 c
 c     compute torque in local frame
 c
-               tqxil =  2.0d0 * uiyl * uizl * s2i
-               tqyil = -2.0d0 * uixl * uizl * s2i
-               tqxkl =  2.0d0 * ukyl * ukzl * s2k
-               tqykl = -2.0d0 * ukxl * ukzl * s2k
+                  tqxil =  2.0d0 * uiyl * uizl * s2i
+                  tqyil = -2.0d0 * uixl * uizl * s2i
+                  tqxkl =  2.0d0 * ukyl * ukzl * s2k
+                  tqykl = -2.0d0 * ukxl * ukzl * s2k
 c
 c     convert torque to forces
 c
-               frcil(1) = -tqyil / r
-               frcil(2) = tqxil / r
-               frckl(1) = -tqykl / r
-               frckl(2) = tqxkl / r
+                  frcil(1) = -tqyil / r
+                  frcil(2) = tqxil / r
+                  frckl(1) = -tqykl / r
+                  frckl(2) = tqxkl / r
 c
 c     rotate force to global frame
 c
-               frcxi = 0.0d0
-               frcyi = 0.0d0
-               frczi = 0.0d0
-               frcxk = 0.0d0
-               frcyk = 0.0d0
-               frczk = 0.0d0
-               do j = 1, 3
-                  frcxi = frcxi + ai(j,1)*frcil(j)
-                  frcyi = frcyi + ai(j,2)*frcil(j)
-                  frczi = frczi + ai(j,3)*frcil(j)
-                  frcxk = frcxk + ak(j,1)*frckl(j)
-                  frcyk = frcyk + ak(j,2)*frckl(j)
-                  frczk = frczk + ak(j,3)*frckl(j)
-               end do
-               frcx = f*(frcxk-frcxi)
-               frcy = f*(frcyk-frcyi)
-               frcz = f*(frczk-frczi)
+                  frcxi = 0.0d0
+                  frcyi = 0.0d0
+                  frczi = 0.0d0
+                  frcxk = 0.0d0
+                  frcyk = 0.0d0
+                  frczk = 0.0d0
+                  if (epli) then
+                     do j = 1, 3
+                        frcxi = frcxi + ai(j,1)*frcil(j)
+                        frcyi = frcyi + ai(j,2)*frcil(j)
+                        frczi = frczi + ai(j,3)*frcil(j)
+                     end do
+                  end if
+                  if (eplk) then
+                     do j = 1, 3
+                        frcxk = frcxk + ak(j,1)*frckl(j)
+                        frcyk = frcyk + ak(j,2)*frckl(j)
+                        frczk = frczk + ak(j,3)*frckl(j)
+                     end do
+                  end if
+                  frcx = f*(frcxk-frcxi)
+                  frcy = f*(frcyk-frcyi)
+                  frcz = f*(frczk-frczi)
 c
 c     increment force-based gradient on the interaction sites
 c
-               dep(1,i) = dep(1,i) + frcx
-               dep(2,i) = dep(2,i) + frcy
-               dep(3,i) = dep(3,i) + frcz
-               dep(1,k) = dep(1,k) - frcx
-               dep(2,k) = dep(2,k) - frcy
-               dep(3,k) = dep(3,k) - frcz
+                  dep(1,i) = dep(1,i) + frcx
+                  dep(2,i) = dep(2,i) + frcy
+                  dep(3,i) = dep(3,i) + frcz
+                  dep(1,k) = dep(1,k) - frcx
+                  dep(2,k) = dep(2,k) - frcy
+                  dep(3,k) = dep(3,k) - frcz
 c
 c     increment the virial due to pairwise Cartesian forces
 c
-               vxx = -xr * frcx
-               vxy = -0.5d0 * (yr*frcx+xr*frcy)
-               vxz = -0.5d0 * (zr*frcx+xr*frcz)
-               vyy = -yr * frcy
-               vyz = -0.5d0 * (zr*frcy+yr*frcz)
-               vzz = -zr * frcz
-               vir(1,1) = vir(1,1) + vxx
-               vir(2,1) = vir(2,1) + vxy
-               vir(3,1) = vir(3,1) + vxz
-               vir(1,2) = vir(1,2) + vxy
-               vir(2,2) = vir(2,2) + vyy
-               vir(3,2) = vir(3,2) + vyz
-               vir(1,3) = vir(1,3) + vxz
-               vir(2,3) = vir(2,3) + vyz
-               vir(3,3) = vir(3,3) + vzz
+                  vxx = -xr * frcx
+                  vxy = -0.5d0 * (yr*frcx+xr*frcy)
+                  vxz = -0.5d0 * (zr*frcx+xr*frcz)
+                  vyy = -yr * frcy
+                  vyz = -0.5d0 * (zr*frcy+yr*frcz)
+                  vzz = -zr * frcz
+                  vir(1,1) = vir(1,1) + vxx
+                  vir(2,1) = vir(2,1) + vxy
+                  vir(3,1) = vir(3,1) + vxz
+                  vir(1,2) = vir(1,2) + vxy
+                  vir(2,2) = vir(2,2) + vyy
+                  vir(3,2) = vir(3,2) + vyz
+                  vir(1,3) = vir(1,3) + vxz
+                  vir(2,3) = vir(2,3) + vyz
+                  vir(3,3) = vir(3,3) + vzz
+               end if
             end if
          end do
 c
@@ -734,11 +766,11 @@ c
       end
 c
 c
-c     #######################################################
-c     ##                                                   ##
-c     ##  subroutine exrotmat  --  compute rotation matrix ##
-c     ##                                                   ##
-c     #######################################################
+c     ########################################################
+c     ##                                                    ##
+c     ##  subroutine exrotmat  --  compute rotation matrix  ##
+c     ##                                                    ##
+c     ########################################################
 c
 c
 c     "exrotmat" computes rotation matrix

@@ -218,6 +218,7 @@ c
       if (.not. allocated(pepk))  allocate (pepk(maxclass))
       if (.not. allocated(peppre))  allocate (peppre(maxclass))
       if (.not. allocated(pepdmp))  allocate (pepdmp(maxclass))
+      if (.not. allocated(pepl))  allocate (pepl(maxclass))
       if (.not. allocated(dspsix))  allocate (dspsix(maxclass))
       if (.not. allocated(dspdmp))  allocate (dspdmp(maxclass))
       if (.not. allocated(chg))  allocate (chg(maxtyp))
@@ -276,6 +277,7 @@ c
          pepk(i) = 0.0d0
          peppre(i) = 0.0d0
          pepdmp(i) = 0.0d0
+         pepl(i) = .false.
          dspsix(i) = 0.0d0
          dspdmp(i) = 0.0d0
          cpele(i) = 0.0d0

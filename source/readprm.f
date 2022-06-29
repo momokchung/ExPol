@@ -73,6 +73,7 @@ c
       integer nx,ny,nxy
       integer bt,at,sbt,tt
       integer ft(6),pg(maxval)
+      integer ilpr
       real*8 wght,rd
       real*8 ep,rdn
       real*8 spr,apr,epr
@@ -1965,13 +1966,19 @@ c
             kpr = 0.0d0
             ppr = 0.0d0
             dpr = 0.0d0
+            ilpr = 0
             string = record(next:240)
-            read (string,*,err=750,end=750)  ia,kpr,ppr,dpr
+            read (string,*,err=750,end=750)  ia,kpr,ppr,dpr,ilpr
   750       continue
             if (ia .ne. 0) then
                pepk(ia) = kpr
                peppre(ia) = ppr
                pepdmp(ia) = dpr
+               if (ilpr.ne.0) then
+                  pepl(ia) = .true.
+               else
+                  pepl(ia) = .false.
+               end if
             end if
          end if
       end do

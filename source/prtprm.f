@@ -62,6 +62,7 @@ c
       integer k1,k2,k3
       integer k4,k5
       integer fold(6)
+      integer ilpr
       real*8 ampli(6)
       real*8 phase(6)
       logical exist
@@ -1329,20 +1330,26 @@ c     Exchange polarization parameters
 c
       exist = .false.
       do i = 1, maxclass
-         if (pepk(i) .ne. 0.0d0)  exist = .true.
+         if (pepdmp(i) .ne. 0.0d0)  exist = .true.
       end do
       if (exist) then
          write (itxt,1880)  formfeed,forcefield
  1880    format (a1,//,15x,'Tinker Force Field Parameters for ',a20)
          write (itxt,1890)
  1890    format (//,15x,'Exchange Polarization Parameters',
-     &           ///,24x,'Class',12x,'Spring',8x,'Size',8x,'Damp'/)
+     &           ///,22x,'Class',8x,'Spring',8x,'Size',8x,'Damp',
+     &           8x,'On'/)
          k = 0
          do i = 1, maxclass
-            if (pepk(i) .ne. 0.0d0) then
+            if (pepdmp(i) .ne. 0.0d0) then
                k = k + 1
-               write (itxt,1900)  k,i,pepk(i),peppre(i),pepdmp(i)
- 1900        format (10x,i7,3x,i7,8x,2f12.4,f12.3)
+               if (pepl(k)) then
+                  ilpr = 1
+               else
+                  ilpr = 0
+               end if
+               write (itxt,1900)  k,i,pepk(i),peppre(i),pepdmp(i),ilpr
+ 1900          format (10x,i7,1x,i7,4x,2f12.4,f12.3,9x,i1)
             end if
          end do
       end if
